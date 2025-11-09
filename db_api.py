@@ -1,4 +1,3 @@
-# db_api.py
 import sqlite3
 from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
