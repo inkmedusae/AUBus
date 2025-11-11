@@ -2,264 +2,62 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
+from stylinginfo import *
 
-class LoginScreen(QWidget):
-    def __init__(self, switch_to_signup):
-        super().__init__()
-        self.switch_to_signup = switch_to_signup
-        self.init_ui()
-    
-    def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-        
-        # Title
-        title = QLabel("Login")
-        title.setFont(QFont('Arial', 24, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-        
-        layout.addSpacing(20)
-        
-        # Username
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Username")
-        self.username_input.setMinimumWidth(300)
-        self.username_input.setMinimumHeight(40)
-        layout.addWidget(self.username_input)
-        
-        # Password
-        self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Password")
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setMinimumHeight(40)
-        layout.addWidget(self.password_input)
-        
-        layout.addSpacing(10)
-        
-        # Login button
-        login_btn = QPushButton("Login")
-        login_btn.setMinimumHeight(45)
-        login_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-        layout.addWidget(login_btn)
-        
-        layout.addSpacing(15)
-        
-        # Switch to signup
-        signup_label = QLabel("Don't have an account?")
-        signup_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(signup_label)
-        
-        signup_btn = QPushButton("Sign Up")
-        signup_btn.setMinimumHeight(40)
-        signup_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #2196F3;
-                border: 2px solid #2196F3;
-                border-radius: 5px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #2196F3;
-                color: white;
-            }
-        """)
-        signup_btn.clicked.connect(self.switch_to_signup)
-        layout.addWidget(signup_btn)
-        
-        self.setLayout(layout)
+#sign up page qwidget
 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
+signPage = QWidget()
+signPage_layout = QVBoxLayout()
 
-class SignupScreen(QWidget):
-    def __init__(self, switch_to_login):
-        super().__init__()
-        self.switch_to_login = switch_to_login
-        self.init_ui()
-    
-    def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-        
-        # Title
-        title = QLabel("Sign Up")
-        title.setFont(QFont('Arial', 24, QFont.Bold))
-        title.setAlignment(Qt.AlignCenter)
-        layout.addWidget(title)
-        
-        layout.addSpacing(20)
-        
-        # Username
-        self.username_input = QLineEdit()
-        self.username_input.setPlaceholderText("Username")
-        self.username_input.setMinimumWidth(300)
-        self.username_input.setMinimumHeight(40)
-        layout.addWidget(self.username_input)
-        
-        # Password
-        self.password_input = QLineEdit()
-        self.password_input.setPlaceholderText("Password")
-        self.password_input.setEchoMode(QLineEdit.Password)
-        self.password_input.setMinimumHeight(40)
-        layout.addWidget(self.password_input)
-        
-        # Confirm Password
-        self.confirm_password_input = QLineEdit()
-        self.confirm_password_input.setPlaceholderText("Confirm Password")
-        self.confirm_password_input.setEchoMode(QLineEdit.Password)
-        self.confirm_password_input.setMinimumHeight(40)
-        layout.addWidget(self.confirm_password_input)
-        
-        layout.addSpacing(10)
-        
-        # Signup button
-        signup_btn = QPushButton("Sign Up")
-        signup_btn.setMinimumHeight(45)
-        signup_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0b7dda;
-            }
-        """)
-        layout.addWidget(signup_btn)
-        
-        layout.addSpacing(15)
-        
-        # Switch to login
-        login_label = QLabel("Already have an account?")
-        login_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(login_label)
-        
-        login_btn = QPushButton("Login")
-        login_btn.setMinimumHeight(40)
-        login_btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #4CAF50;
-                border: 2px solid #4CAF50;
-                border-radius: 5px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #4CAF50;
-                color: white;
-            }
-        """)
-        layout.addWidget(login_btn)
-        
-        self.setLayout(layout)
-    
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
 
-class MainScreen(QWidget):
-    def __init__(self, username, on_logout):
-        super().__init__()
-        self.username = username
-        self.on_logout = on_logout
-        self.init_ui()
-    
-    def init_ui(self):
-        layout = QVBoxLayout()
-        
-        # Welcome message
-        welcome = QLabel(f"Welcome, {self.username}!")
-        welcome.setFont(QFont('Arial', 28, QFont.Bold))
-        welcome.setAlignment(Qt.AlignCenter)
-        layout.addWidget(welcome)
-        
-        layout.addSpacing(20)
-        
-        # Content area
-        content = QLabel("You have successfully logged in!")
-        content.setFont(QFont('Arial', 16))
-        content.setAlignment(Qt.AlignCenter)
-        layout.addWidget(content)
-        
-        layout.addStretch()
-        
-        # Logout button
-        logout_btn = QPushButton("Logout")
-        logout_btn.setMinimumHeight(45)
-        logout_btn.setMaximumWidth(200)
-        logout_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #f44336;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                font-size: 16px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #da190b;
-            }
-        """)
-        logout_btn.clicked.connect(self.on_logout)
-        
-        logout_layout = QHBoxLayout()
-        logout_layout.addStretch()
-        logout_layout.addWidget(logout_btn)
-        logout_layout.addStretch()
-        layout.addLayout(logout_layout)
-        
-        self.setLayout(layout)
+title = QLabel("Welcome to AUBus!")
+title.setFont(QFont('Arial', 24, QFont.Bold))
+title.setAlignment(Qt.AlignCenter)
+signPage_layout.addWidget(title)    
 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
-# --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- 
 
-class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
-        self.current_user = None
-        self.init_ui()
-    
-    def init_ui(self):
-        self.setWindowTitle("Login System")
-        self.setGeometry(100, 100, 500, 600)
-        
-        # Central widget with stacked layout
-        self.stacked_widget = QStackedWidget()
-        self.setCentralWidget(self.stacked_widget)
-        
-        # Create screens
-        self.login_screen = LoginScreen( 
-            lambda: self.stacked_widget.setCurrentIndex(1)
-        )
-        self.signup_screen = SignupScreen(
-            lambda: self.stacked_widget.setCurrentIndex(0)
-        )
-        
-        # Add screens to stack
-        self.stacked_widget.addWidget(self.login_screen)
-        self.stacked_widget.addWidget(self.signup_screen)
-        
-        # Start with login screen
-        self.stacked_widget.setCurrentIndex(0)
+logLabel = QLabel("Create an account:")
+logLabel.setFont(QFont('Arial', 14, QFont.Bold))
+logLabel.setAlignment(Qt.AlignCenter)
+logLabel.setStyleSheet("""
+    QLabel {     
+        margin-bottom: 100px;
+        }
+""")
+signPage_layout.addWidget(logLabel)    
+signPage_layout.setSpacing(0)
 
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+
+username_input = QLineEdit()
+username_input.setPlaceholderText("Username")
+username_input.setMinimumWidth(300)
+username_input.setMinimumHeight(40)
+username_input.setStyleSheet(user_pass_input_style)
+signPage_layout.addWidget(username_input)
+
+
+password_input = QLineEdit()
+password_input.setPlaceholderText("Password")
+password_input.setEchoMode(QLineEdit.Password)
+password_input.setMinimumWidth(300)
+password_input.setMinimumHeight(40)
+password_input.setStyleSheet(user_pass_input_style)
+signPage_layout.addWidget(password_input)
+
+
+sign_btn = QPushButton("Sign up")
+sign_btn.setMinimumHeight(45)
+sign_btn.setStyleSheet(loginbutton_style)
+#login_btn.clicked.connect(login)
+sign_btn.setCursor(QCursor(Qt.PointingHandCursor))
+signPage_layout.addWidget(sign_btn) 
+
+
+logsign_btn = QPushButton("Have an account?")
+logsign_btn.setFont(QFont('Arial', 10, QFont.Bold))
+logsign_btn.setStyleSheet(noAccount_ask)
+logsign_btn.setCursor(QCursor(Qt.PointingHandCursor))
+
+signPage_layout.addWidget(logsign_btn)
+
+signPage.setLayout(signPage_layout)
