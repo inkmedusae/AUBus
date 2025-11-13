@@ -5,13 +5,17 @@
 # create profile -> 2
 # home page -> 3
 
+#REQUEST ->
+#request() -> connect 3al button
+#user -> location, time
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 from stylinginfo import *
 app = QApplication(sys.argv)
-from profilePage import profilePage
+from profilePage import *
 from login import *
 from signup import *
 from home import *
@@ -35,8 +39,6 @@ logout_btn.clicked.connect(go_login)
 stack = QStackedLayout()
 stack.setAlignment(Qt.AlignCenter)
 
-
-
 stack.addWidget(loginPage)
 stack.addWidget(signPage)
 stack.addWidget(profilePage)
@@ -47,7 +49,7 @@ window.setLayout(stack)
 window.setWindowTitle("AUBus")
 window.setGeometry(100, 100, 500, 600)
 
-
+window.setStyleSheet("background-color: #FFEAEC;")
 
 # if we want to make the window size constant (no resize) uncomment this
 window.setFixedSize(900, 550)

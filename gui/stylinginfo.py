@@ -1,15 +1,22 @@
 # this page is used to quickyl change attributes to modify the gui 
 # instead of going through the structure itself
 
+# color palette
+# cadet gray -> #9AADBF
+# air superiority blue -> #6D98BA
+#tan -> #D3B99F
+#old rose -> #C17767
 
 user_pass_input_style = """
             QLineEdit {
                 background-color: lightblue;
                 border: none;
-                border-radius: 5px;
-                padding: 10px;
+                border-radius: 10px;
+                padding: 15px;
                 font-size: 14px;
                 margin-bottom: 100px;
+                margin: 50px;
+                margin-left: 200px;
             }
         """
 
@@ -75,3 +82,20 @@ homeSide_btn_style = """
                     background-color: #34495e;
                 }
             """
+
+request_style = """
+    QPushButton {
+                    background-color: #2c3e50;
+                    color: white;
+                    border: none;
+                    padding: 15px;
+                    text-align: left;
+                    margin-top: 10px;
+                    margin-bottom: 10px;
+                }
+    QPushButton:hover {
+                    background-color: #34495e;
+                }
+"""
+
+textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white;"

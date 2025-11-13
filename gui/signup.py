@@ -16,33 +16,49 @@ title.setAlignment(Qt.AlignCenter)
 signPage_layout.addWidget(title)    
 
 
-logLabel = QLabel("Create an account:")
-logLabel.setFont(QFont('Arial', 14, QFont.Bold))
-logLabel.setAlignment(Qt.AlignCenter)
-logLabel.setStyleSheet("""
+signLabel = QLabel("Create an account:")
+signLabel.setFont(QFont('Arial', 14, QFont.Bold))
+signLabel.setAlignment(Qt.AlignCenter)
+signLabel.setStyleSheet("""
     QLabel {     
-        margin-bottom: 100px;
+        margin-bottom: 25px;
+        margin-top: 30px;
         }
 """)
-signPage_layout.addWidget(logLabel)    
+signPage_layout.addWidget(signLabel)    
 signPage_layout.setSpacing(0)
 
 
-username_input = QLineEdit()
-username_input.setPlaceholderText("Username")
-username_input.setMinimumWidth(300)
-username_input.setMinimumHeight(40)
-username_input.setStyleSheet(user_pass_input_style)
-signPage_layout.addWidget(username_input)
+userLab_signup = QLabel("Enter your username")
+userLab_signup.setFont(QFont('Arial', 10))
+userLab_signup.setAlignment(Qt.AlignLeft)
+signPage_layout.addWidget(userLab_signup) 
+
+username_input_signup = QLineEdit()
+username_input_signup.setPlaceholderText("Username")
+username_input_signup.setMinimumWidth(300)
+username_input_signup.setMinimumHeight(40)
+username_input_signup.setMaximumWidth(700)
+username_input_signup.setStyleSheet(user_pass_input_style)
+signPage_layout.addWidget(username_input_signup)
 
 
-password_input = QLineEdit()
-password_input.setPlaceholderText("Password")
-password_input.setEchoMode(QLineEdit.Password)
-password_input.setMinimumWidth(300)
-password_input.setMinimumHeight(40)
-password_input.setStyleSheet(user_pass_input_style)
-signPage_layout.addWidget(password_input)
+passLab_signup = QLabel("Enter your password")
+passLab_signup.setFont(QFont('Arial', 10))
+passLab_signup.setAlignment(Qt.AlignCenter)
+passLab_signup.setStyleSheet("""
+    text-align: left;
+""")
+signPage_layout.addWidget(passLab_signup)
+
+password_input_signup = QLineEdit()
+password_input_signup.setPlaceholderText("Password")
+password_input_signup.setEchoMode(QLineEdit.Password)
+password_input_signup.setMinimumWidth(300)
+password_input_signup.setMinimumHeight(40)
+password_input_signup.setMaximumWidth(700)
+password_input_signup.setStyleSheet(user_pass_input_style)
+signPage_layout.addWidget(password_input_signup)
 
 
 sign_btn = QPushButton("Sign up")
