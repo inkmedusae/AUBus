@@ -118,8 +118,7 @@ profile_stack.addWidget(schedule_widget)
 profile_stack.addWidget(location_widget)
 profile_stack.addWidget(summary_widget)
 
-# --- Navigation Buttons ---
-# Add a back arrow tool button in the top left
+
 back_arrow_layout = QHBoxLayout()
 btn_back = QToolButton()
 btn_back.setIcon(btn_back.style().standardIcon(QStyle.SP_ArrowBack))
@@ -200,15 +199,7 @@ def on_location_enter():
         go_next()
 location_input.returnPressed.connect(on_location_enter)
 
-def save_profile():
-    QMessageBox.information(
-        profilePage,
-        "Profile Saved",
-        f"Profile created successfully!\n\nUser Type: {user_type['value']}\nLocation: {location['value']}"
-    )
 
-
-btn_confirm.clicked.connect(save_profile)
 
 profile_stack.setCurrentIndex(0)
 update_button_states()
