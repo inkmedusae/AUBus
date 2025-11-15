@@ -32,10 +32,14 @@ loginPage_layout.addWidget(logLabel)
 loginPage_layout.setSpacing(0)
 
 
-userLab = QLabel("Enter your username")
+userLab = QLabel("Enter your username:")
 userLab.setFont(QFont('Arial', 10))
 userLab.setAlignment(Qt.AlignLeft)
-loginPage_layout.addWidget(userLab)    
+userLab.setStyleSheet("""
+    margin-left: 25px;
+    """)
+loginPage_layout.addWidget(userLab)
+
 
 username_input = QLineEdit()
 username_input.setPlaceholderText("Username")
@@ -46,12 +50,12 @@ username_input.setStyleSheet(user_pass_input_style)
 loginPage_layout.addWidget(username_input)
 
 
-passLab = QLabel("Enter your password")
+passLab = QLabel("Enter your password:")
 passLab.setFont(QFont('Arial', 10))
-passLab.setAlignment(Qt.AlignCenter)
+passLab.setAlignment(Qt.AlignLeft)
 passLab.setStyleSheet("""
-    text-align: left;
-""")
+    margin-left: 25px;
+    """)
 loginPage_layout.addWidget(passLab)
 
 password_input = QLineEdit()

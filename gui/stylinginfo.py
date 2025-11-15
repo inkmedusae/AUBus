@@ -29,6 +29,8 @@ loginbutton_style = """
                 font-size: 16px;
                 font-weight: bold;
                 margin-bottom: 10px;
+                margin-left: 250px;
+                margin-right: 250px;
                 color: #2196F3;
             }
             QPushButton:hover {
@@ -90,12 +92,13 @@ request_style = """
                     border: none;
                     padding: 15px;
                     text-align: left;
-                    margin-top: 10px;
-                    margin-bottom: 10px;
+                    margin-top: 5px;
+                    margin-bottom: 5px;
                 }
     QPushButton:hover {
                     background-color: #34495e;
                 }
 """
 
-textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white;"
+textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white; margin-left: 25px;"
+recBubble_style = "color: #222; background: #BDD5EA; border-radius: 8px; padding: 4px 8px; color: white;"

@@ -29,9 +29,12 @@ signPage_layout.addWidget(signLabel)
 signPage_layout.setSpacing(0)
 
 
-userLab_signup = QLabel("Enter your username")
+userLab_signup = QLabel("Enter your username:")
 userLab_signup.setFont(QFont('Arial', 10))
 userLab_signup.setAlignment(Qt.AlignLeft)
+userLab_signup.setStyleSheet("""
+    margin-left: 25px;
+    """)
 signPage_layout.addWidget(userLab_signup) 
 
 username_input_signup = QLineEdit()
@@ -43,12 +46,13 @@ username_input_signup.setStyleSheet(user_pass_input_style)
 signPage_layout.addWidget(username_input_signup)
 
 
-passLab_signup = QLabel("Enter your password")
+passLab_signup = QLabel("Enter your password:")
 passLab_signup.setFont(QFont('Arial', 10))
 passLab_signup.setAlignment(Qt.AlignCenter)
+passLab_signup.setAlignment(Qt.AlignLeft)
 passLab_signup.setStyleSheet("""
-    text-align: left;
-""")
+    margin-left: 25px;
+    """)
 signPage_layout.addWidget(passLab_signup)
 
 password_input_signup = QLineEdit()

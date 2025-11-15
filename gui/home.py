@@ -1,11 +1,13 @@
+import requests
 from PyQt5.QtWidgets import *
+from weatherchat import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 from stylinginfo import *
 
 home = QWidget()
-
+key = "7a77199e48174a098bf174356251411"
 # --- Sidebar ---
 sidebar = QWidget()
 sidebar.setStyleSheet("background-color: #2c3e50;")
@@ -28,9 +30,97 @@ for btn in [btn1, btn2, logout_btn]:
 sidebar_layout.addStretch()
 sidebar.setLayout(sidebar_layout)
 
-# --- Main content area ---
+
 main_content_layout = QVBoxLayout()
-main_content_layout.setSpacing(16)
+main_content_layout.setSpacing(10)
+
+# --- Weather Bar ---
+weather_bar = QFrame()
+weather_bar.setStyleSheet("""
+    QFrame {
+        background-color: #34495e;
+        border-radius: 8px;
+        padding: 5px;
+    }
+""")
+weather_bar_layout = QHBoxLayout(weather_bar)
+weather_bar_layout.setSpacing(5)
+
+# Weather day widgets will be added here
+weather_day_widgets = []
+
+def create_weather_day_widget(date, temp, condition):
+    day_widget = QFrame()
+    day_widget.setStyleSheet("""
+        QFrame {
+            background-color: #2c3e50;
+            border-radius: 6px;
+            padding: 2px;
+        }
+    """)
+    day_layout = QVBoxLayout(day_widget)
+    day_layout.setSpacing(1)
+    
+    date_label = QLabel(date)
+    date_label.setFont(QFont('Arial', 8, QFont.Bold))
+    date_label.setStyleSheet("color: #3498db;")
+    date_label.setAlignment(Qt.AlignCenter)
+    
+    temp_label = QLabel(temp)
+    temp_label.setFont(QFont('Arial', 12, QFont.Bold))
+    temp_label.setStyleSheet("color: #ecf0f1;")
+    temp_label.setAlignment(Qt.AlignCenter)
+    
+    condition_label = QLabel(condition)
+    condition_label.setFont(QFont('Arial', 8))
+    condition_label.setStyleSheet("color: #bdc3c7;")
+    condition_label.setAlignment(Qt.AlignCenter)
+    condition_label.setWordWrap(True)
+    
+    day_layout.addWidget(date_label)
+    day_layout.addWidget(temp_label)
+    day_layout.addWidget(condition_label)
+    
+    return day_widget
+
+def fetch_and_display_weather(location="Beirut"):
+    try:
+        url = f"http://api.weatherapi.com/v1/forecast.json?key={key}&q={location}&days=4&aqi=no"        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        forecast_days = data['forecast']['forecastday']
+        
+        # Clear existing weather widgets
+        for widget in weather_day_widgets:
+            weather_bar_layout.removeWidget(widget)
+            widget.deleteLater()
+        weather_day_widgets.clear()
+        
+        # Add new weather widgets
+        for day_data in forecast_days:
+            date = day_data['date']
+            temp = f"{day_data['day']['avgtemp_c']}°C"
+            condition = day_data['day']['condition']['text']
+            
+            day_widget = create_weather_day_widget(date, temp, condition)
+            weather_bar_layout.addWidget(day_widget)
+            weather_day_widgets.append(day_widget)
+        
+    except Exception as e:
+        # If weather fetch fails, show error message
+        error_label = QLabel(f"Weather unavailable")
+        error_label.setStyleSheet("color: #e74c3c;")
+        error_label.setAlignment(Qt.AlignCenter)
+        weather_bar_layout.addWidget(error_label)
+        print(f"Weather fetch error: {e}")
+
+
+main_content_layout.addWidget(weather_bar)
+
+QTimer.singleShot(100, lambda: fetch_and_display_weather("Beirut"))
+
 
 request_button = QPushButton("Request a ride")
 request_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -39,8 +129,9 @@ main_content_layout.addWidget(request_button)
 
 main_content_layout.addStretch()
 
+
 chatbox_placeholder = QFrame()
-chatbox_placeholder.setFixedSize(300, 350)
+chatbox_placeholder.setFixedSize(275, 325)
 chatbox_placeholder.setStyleSheet("""
     QFrame {
         background: #FFEAEC;
@@ -65,7 +156,7 @@ chatbox_input = QLineEdit()
 chatbox_input.setPlaceholderText("Type your message and press Enter...")
 chatbox_layout.addWidget(chatbox_input)
 
-from PyQt5.QtCore import Qt
+
 
 def send_chat_message():
     msg = chatbox_input.text().strip()
@@ -73,20 +164,26 @@ def send_chat_message():
         label = QLabel(msg)
         label.setWordWrap(True)
         label.setStyleSheet(textBubble_style)
-        label.setMaximumWidth(200)
+        label.setMaximumWidth(225)
         chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
         chatbox_input.clear()
-        # Scroll to bottom
+def rec_chat_message(message):
+    label = QLabel(message)
+    label.setWordWrap(True)
+    label.setStyleSheet(recBubble_style)
+    label.setAlignment(Qt.AlignRight)
+    label.setMaximumWidth(175)
+    chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
+rec_chat_message("Hello")    
 chatbox_scroll.verticalScrollBar().setValue(chatbox_scroll.verticalScrollBar().maximum())
 chatbox_input.returnPressed.connect(send_chat_message)
 
-# Layout to push chatbox to bottom right of content area
 chatbox_row = QHBoxLayout()
 chatbox_row.addStretch()
 chatbox_row.addWidget(chatbox_placeholder)
 main_content_layout.addLayout(chatbox_row)
 
-# --- Main horizontal layout ---
+
 home_layout = QHBoxLayout()
 home_layout.addWidget(sidebar)
 home_layout.addLayout(main_content_layout)
