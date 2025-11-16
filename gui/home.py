@@ -4,7 +4,10 @@ from weather import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stylinginfo import *
+from finalserverclient.aubus_client import client_create_ride
 
 key = "7a77199e48174a098bf174356251411"
 
@@ -188,6 +191,96 @@ def create_home(preferences=None, username=None, area=None):
     request_button.setStyleSheet(button_style)
     main_content_layout.addWidget(request_button)
     
+    # Function to handle ride request
+    def handle_ride_request():
+        """Creates a ride request and notifies all drivers in the same area"""
+        if not username:
+            error_msg = QMessageBox()
+            error_msg.setIcon(QMessageBox.Warning)
+            error_msg.setText("User information not available. Please log in again.")
+            error_msg.setWindowTitle("Error")
+            error_msg.exec_()
+            return
+        
+        if not area:
+            error_msg = QMessageBox()
+            error_msg.setIcon(QMessageBox.Warning)
+            error_msg.setText("Area information not available. Please update your profile.")
+            error_msg.setWindowTitle("Error")
+            error_msg.exec_()
+            return
+        
+        # Create a dialog to get pickup time
+        dialog = QDialog()
+        dialog.setWindowTitle("Request a Ride")
+        dialog.setModal(True)
+        dialog_layout = QVBoxLayout()
+        
+        # Area display (read-only)
+        area_label = QLabel(f"Area: {area}")
+        area_label.setStyleSheet("font-size: 14px; padding: 5px;")
+        dialog_layout.addWidget(area_label)
+        
+        # Time input
+        time_label = QLabel("Pickup Time (e.g., 08:30 AM):")
+        time_input = QLineEdit()
+        time_input.setPlaceholderText("08:30 AM")
+        dialog_layout.addWidget(time_label)
+        dialog_layout.addWidget(time_input)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        cancel_btn = QPushButton("Cancel")
+        submit_btn = QPushButton("Request Ride")
+        submit_btn.setStyleSheet(button_style)
+        cancel_btn.setStyleSheet(button_style)
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(submit_btn)
+        dialog_layout.addLayout(button_layout)
+        
+        dialog.setLayout(dialog_layout)
+        
+        def submit_request():
+            pickup_time = time_input.text().strip()
+            if not pickup_time:
+                error_msg = QMessageBox()
+                error_msg.setIcon(QMessageBox.Warning)
+                error_msg.setText("Please enter a pickup time")
+                error_msg.setWindowTitle("Invalid Input")
+                error_msg.exec_()
+                return
+            
+            # Call the client function to create ride request
+            response = client_create_ride(username, area, pickup_time)
+            
+            dialog.close()
+            
+            # Show result message
+            msg = QMessageBox()
+            if response.get("status") == "success":
+                msg.setIcon(QMessageBox.Information)
+                msg.setText(f"Ride request created successfully!\n\nAll drivers in {area} have been notified.")
+                msg.setWindowTitle("Success")
+            else:
+                msg.setIcon(QMessageBox.Critical)
+                error_message = response.get('message', 'Unknown error')
+                # Check if it's a connection error
+                if "Connection failed" in error_message or "connect" in error_message.lower():
+                    msg.setText(f"Cannot connect to server.\n\nPlease make sure the AUBus server is running.\n\nTo start the server, run:\npython finalserverclient/aubus_server.py")
+                else:
+                    msg.setText(f"Failed to create ride request:\n{error_message}")
+                msg.setWindowTitle("Error")
+            msg.exec_()
+        
+        submit_btn.clicked.connect(submit_request)
+        cancel_btn.clicked.connect(dialog.close)
+        time_input.returnPressed.connect(submit_request)
+        
+        dialog.exec_()
+    
+    # Connect the button to the handler
+    request_button.clicked.connect(handle_ride_request)
+    
     main_content_layout.addStretch()
     
     chatbox_placeholder = QFrame()
@@ -254,6 +347,8 @@ def create_home(preferences=None, username=None, area=None):
     home_widget.logout_btn = logout_btn
     home_widget.btn1 = btn1
     home_widget.btn2 = btn2
+    home_widget.username = username  # Store username for ride requests
+    home_widget.area = area  # Store area for ride requests
     
     return home_widget
 

@@ -14,6 +14,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 import os
+import threading
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stylinginfo import *
 app = QApplication(sys.argv)
@@ -27,6 +28,18 @@ import sqlite3
 
 init_db()
 init_user_preferences_db()
+init_ride_db()
+init_rating_db()
+
+# Start the server in a background thread
+def start_server_thread():
+    """Starts the AUBus server in a background thread"""
+    PORT = 5555
+    print("[INFO] Starting AUBus server in background...")
+    start_server(PORT)
+
+server_thread = threading.Thread(target=start_server_thread, daemon=True)
+server_thread.start()
 
 # Temporary storage for signup credentials
 temp_signup_credentials = {}

@@ -4,16 +4,45 @@ from weather import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stylinginfo import *
+from finalserverclient.aubus_client import client_get_pending_rides, client_accept_ride
 
 key = "7a77199e48174a098bf174356251411"
 
 def get_requests_for_driver(username, location):
-    # Placeholder: Replace with actual request retrieval logic
-    return [
-        {'passenger': 'user1', 'pickup': 'Achrafieh',  'time': '8:00 AM'},
-        {'passenger': 'user2', 'pickup': 'Badaro', 'time': '9:00 AM'},
-    ]
+    """
+    Fetches real pending ride requests from the server for the driver's area.
+    Returns a list of ride request dictionaries.
+    Falls back to empty list if server is unavailable.
+    """
+    if not location:
+        return []
+    
+    try:
+        response = client_get_pending_rides(location)
+        if response.get("status") == "success":
+            rides = response.get("rides", [])
+            # Convert to the format expected by the display code
+            return [
+                {
+                    'id': ride['id'],
+                    'passenger': ride['passenger_username'],
+                    'pickup': ride['area'],
+                    'time': ride['time']
+                }
+                for ride in rides
+            ]
+        else:
+            # Server returned an error, but connection was successful
+            # Only log if it's not a connection error
+            if "Connection failed" not in response.get('message', ''):
+                print(f"[INFO] No pending rides available: {response.get('message', 'Unknown error')}")
+            return []
+    except Exception as e:
+        print(f"[ERROR] Exception while fetching pending rides: {e}")
+        return []
 
 def create_driver_home(preferences=None, username=None, area=None):
     """
@@ -182,24 +211,133 @@ def create_driver_home(preferences=None, username=None, area=None):
     main_content_layout.addWidget(weather_bar)
     QTimer.singleShot(100, lambda: fetch_and_display_weather(area))
     
-    # --- Requests Bar (replaces request button) ---
-    requests_bar = QFrame()
-    requests_bar.setStyleSheet(f"""
+    # --- Requests Section ---
+    requests_container = QFrame()
+    requests_container.setStyleSheet(f"""
         QFrame {{
             background-color: {preferences.get('button_color', '#2c3e50')};
             border-radius: 8px;
-            padding: 5px;
+            padding: 10px;
         }}
     """)
-    requests_bar_layout = QHBoxLayout(requests_bar)
-    for req in get_requests_for_driver(username or 'driver_username', area or 'driver_location'):
-        req_text = f"<b>Passenger:</b> {req['passenger']}<br><b>Pickup:</b> {req['pickup']}<br><b>Time:</b> {req['time']}"
-        req_label = QLabel(req_text)
-        req_label.setStyleSheet(button_style)
-        req_label.setTextFormat(Qt.RichText)
-        requests_bar_layout.addWidget(req_label)
-    requests_bar_layout.addStretch()
-    main_content_layout.addWidget(requests_bar)
+    requests_container_layout = QVBoxLayout(requests_container)
+    
+    # Header with refresh button
+    requests_header = QHBoxLayout()
+    requests_title = QLabel("Pending Ride Requests")
+    requests_title.setFont(QFont('Arial', 14, QFont.Bold))
+    requests_title.setStyleSheet(f"color: {preferences.get('text_color', 'white')};")
+    requests_header.addWidget(requests_title)
+    requests_header.addStretch()
+    
+    refresh_btn = QPushButton("🔄 Refresh")
+    refresh_btn.setStyleSheet(button_style)
+    refresh_btn.setCursor(QCursor(Qt.PointingHandCursor))
+    requests_header.addWidget(refresh_btn)
+    requests_container_layout.addLayout(requests_header)
+    
+    # Scrollable area for requests
+    requests_scroll = QScrollArea()
+    requests_scroll.setWidgetResizable(True)
+    requests_scroll.setFrameShape(QFrame.NoFrame)
+    requests_scroll.setMinimumHeight(150)
+    requests_scroll.setMaximumHeight(200)
+    requests_widget = QWidget()
+    requests_layout = QVBoxLayout(requests_widget)
+    requests_layout.setSpacing(10)
+    requests_scroll.setWidget(requests_widget)
+    requests_container_layout.addWidget(requests_scroll)
+    
+    def update_requests_display():
+        """Fetches and displays current pending ride requests"""
+        # Clear existing request widgets
+        for i in reversed(range(requests_layout.count())):
+            item = requests_layout.itemAt(i)
+            if item:
+                widget = item.widget()
+                if widget:
+                    requests_layout.removeWidget(widget)
+                    widget.deleteLater()
+        
+        # Fetch new requests
+        requests = get_requests_for_driver(username, area)
+        
+        if not requests:
+            no_requests_label = QLabel("No pending ride requests in your area.")
+            no_requests_label.setStyleSheet(f"color: {preferences.get('text_color', 'white')}; padding: 10px;")
+            no_requests_label.setAlignment(Qt.AlignCenter)
+            requests_layout.addWidget(no_requests_label)
+        else:
+            for req in requests:
+                req_frame = QFrame()
+                req_frame.setStyleSheet(f"""
+                    QFrame {{
+                        background-color: {preferences.get('button_hover_color', '#34495e')};
+                        border-radius: 6px;
+                        padding: 8px;
+                    }}
+                """)
+                req_frame_layout = QHBoxLayout(req_frame)
+                
+                req_info = QLabel(
+                    f"<b>Passenger:</b> {req['passenger']}<br>"
+                    f"<b>Area:</b> {req['pickup']}<br>"
+                    f"<b>Time:</b> {req['time']}"
+                )
+                req_info.setStyleSheet(f"color: {preferences.get('text_color', 'white')};")
+                req_info.setTextFormat(Qt.RichText)
+                req_frame_layout.addWidget(req_info)
+                req_frame_layout.addStretch()
+                
+                accept_btn = QPushButton("Accept")
+                accept_btn.setStyleSheet(button_style)
+                accept_btn.setCursor(QCursor(Qt.PointingHandCursor))
+                accept_btn.setMinimumWidth(80)
+                
+                def create_accept_handler(ride_id, passenger_name):
+                    def accept_ride():
+                        if not username:
+                            error_msg = QMessageBox()
+                            error_msg.setIcon(QMessageBox.Warning)
+                            error_msg.setText("User information not available.")
+                            error_msg.setWindowTitle("Error")
+                            error_msg.exec_()
+                            return
+                        
+                        response = client_accept_ride(ride_id, username)
+                        msg = QMessageBox()
+                        if response.get("status") == "success":
+                            msg.setIcon(QMessageBox.Information)
+                            msg.setText(f"Ride accepted successfully!\n\nYou are now matched with {passenger_name}.")
+                            msg.setWindowTitle("Success")
+                            # Refresh requests after accepting
+                            QTimer.singleShot(500, update_requests_display)
+                        else:
+                            msg.setIcon(QMessageBox.Warning)
+                            msg.setText(f"Failed to accept ride:\n{response.get('message', 'Unknown error')}")
+                            msg.setWindowTitle("Error")
+                        msg.exec_()
+                    return accept_ride
+                
+                accept_btn.clicked.connect(create_accept_handler(req['id'], req['passenger']))
+                req_frame_layout.addWidget(accept_btn)
+                
+                requests_layout.addWidget(req_frame)
+        
+        requests_layout.addStretch()
+    
+    # Connect refresh button
+    refresh_btn.clicked.connect(update_requests_display)
+    
+    # Initial load of requests
+    QTimer.singleShot(200, update_requests_display)
+    
+    # Auto-refresh every 10 seconds
+    refresh_timer = QTimer()
+    refresh_timer.timeout.connect(update_requests_display)
+    refresh_timer.start(10000)  # Refresh every 10 seconds
+    
+    main_content_layout.addWidget(requests_container)
     
     main_content_layout.addStretch()
     

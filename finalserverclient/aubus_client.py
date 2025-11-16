@@ -20,17 +20,26 @@ def send_request_to_server(server_ip, server_port, request_data):
     request_data: Dictionary containing the request (action, username, etc.)
     Returns the server response as a dictionary.
     """
+    client = None
     try:
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # Create TCP socket
+        client.settimeout(2)  # Set timeout to 2 seconds
         client.connect((server_ip, server_port))                     # Connect to server
         client.send(json.dumps(request_data).encode('utf-8'))       # Send request as JSON
         response = client.recv(1024).decode('utf-8')               # Receive response
         return json.loads(response)                                 # Convert JSON to dict
-    except Exception as e:
-        print(f"[ERROR] Could not connect to server: {e}")
+    except (ConnectionRefusedError, socket.timeout, OSError) as e:
+        # Server is not available - return error without printing (caller can handle)
         return {"status": "error", "message": "Connection failed"}
+    except Exception as e:
+        # Other errors - return error response
+        return {"status": "error", "message": f"Error: {str(e)}"}
     finally:
-        client.close()                                             # Always close the socket
+        if client:
+            try:
+                client.close()  # Always close the socket
+            except:
+                pass
 
 def listen_for_notifications(client_socket):
     """
