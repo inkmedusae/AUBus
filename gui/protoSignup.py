@@ -28,6 +28,8 @@ class MainWindow(QWidget):
         self.setLayout(self.stack)
 
 
+
+
 app = QApplication(sys.argv)
 win = MainWindow()
 win.show()

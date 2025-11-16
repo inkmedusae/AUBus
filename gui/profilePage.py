@@ -4,8 +4,6 @@ from PyQt5.QtGui import *
 import sys
 from stylinginfo import *
 
-
-
 profilePage = QWidget()
 main_layout = QVBoxLayout()
 
@@ -15,15 +13,14 @@ profile_title.setAlignment(Qt.AlignCenter)
 main_layout.addWidget(profile_title)
 main_layout.addSpacing(20)
 
-
 profile_stack = QStackedWidget()
 main_layout.addWidget(profile_stack)
-
 
 user_type = {'value': None}
 traveling_schedule = {'value': None}
 location = {'value': None}
 
+# --- Step 1: User Type ---
 user_type_widget = QWidget()
 ut_layout = QVBoxLayout()
 
@@ -47,7 +44,7 @@ ut_layout.addLayout(btn_row)
 ut_layout.addStretch()
 user_type_widget.setLayout(ut_layout)
 
-
+# --- Step 2: Schedule ---
 schedule_widget = QWidget()
 schedule_layout = QVBoxLayout()
 sch_label = QLabel("What is your traveling schedule?")
@@ -68,7 +65,7 @@ schedule_layout.addWidget(schedule_input)
 schedule_layout.addStretch()
 schedule_widget.setLayout(schedule_layout)
 
-
+# --- Step 3: Location ---
 location_widget = QWidget()
 location_layout = QVBoxLayout()
 loc_label = QLabel("What is your location?")
@@ -112,12 +109,10 @@ summary_layout.addWidget(btn_confirm)
 summary_layout.addStretch()
 summary_widget.setLayout(summary_layout)
 
-# Add screens to stack
 profile_stack.addWidget(user_type_widget)
 profile_stack.addWidget(schedule_widget)
 profile_stack.addWidget(location_widget)
 profile_stack.addWidget(summary_widget)
-
 
 back_arrow_layout = QHBoxLayout()
 btn_back = QToolButton()
@@ -142,15 +137,15 @@ def update_summary():
 
 def go_next():
     current_index = profile_stack.currentIndex()
-    if current_index == 0:  # User Type -> Schedule (if driver) or Location (if passenger)
+    if current_index == 0:
         if user_type['value'] == "driver":
             profile_stack.setCurrentIndex(1)
         else:
             profile_stack.setCurrentIndex(2)
-    elif current_index == 1:  # Schedule -> Location
+    elif current_index == 1:
         traveling_schedule['value'] = schedule_input.toPlainText()
         profile_stack.setCurrentIndex(2)
-    elif current_index == 2:  # Location -> Summary
+    elif current_index == 2:
         location['value'] = location_input.text()
         update_summary()
         profile_stack.setCurrentIndex(3)
@@ -158,26 +153,26 @@ def go_next():
 
 def go_previous():
     current_index = profile_stack.currentIndex()
-    if current_index == 3:  # Summary -> Location
+    if current_index == 3:
         profile_stack.setCurrentIndex(2)
-    elif current_index == 2:  # Location -> Schedule (if driver) or User Type (if passenger)
+    elif current_index == 2:
         if user_type['value'] == "driver":
             profile_stack.setCurrentIndex(1)
         else:
             profile_stack.setCurrentIndex(0)
-    elif current_index == 1:  # Schedule -> User Type
+    elif current_index == 1:
         profile_stack.setCurrentIndex(0)
     update_button_states()
 
 def update_button_states():
     current_index = profile_stack.currentIndex()
-    # Only enable back arrow if not on the first screen
     btn_back.setEnabled(current_index > 0)
     btn_back.setVisible(current_index > 0)
 
 def select_user_type_driver():
     user_type['value'] = "driver"
     go_next()
+
 def select_user_type_passenger():
     user_type['value'] = "passenger"
     go_next()
@@ -187,19 +182,20 @@ btn_passenger.clicked.connect(select_user_type_passenger)
 btn_back.clicked.connect(go_previous)
 
 def on_schedule_enter():
-    # Only progress if not empty
     if schedule_input.toPlainText().strip():
         go_next()
+
 schedule_input.keyPressEvent = lambda event: (
-    go_next() if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (event.modifiers() & (Qt.ShiftModifier | Qt.ControlModifier)) else QTextEdit.keyPressEvent(schedule_input, event)
+    go_next() if event.key() in (Qt.Key_Return, Qt.Key_Enter)
+    and not (event.modifiers() & (Qt.ShiftModifier | Qt.ControlModifier))
+    else QTextEdit.keyPressEvent(schedule_input, event)
 )
 
 def on_location_enter():
     if location_input.text().strip():
         go_next()
+
 location_input.returnPressed.connect(on_location_enter)
-
-
 
 profile_stack.setCurrentIndex(0)
 update_button_states()

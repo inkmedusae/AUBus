@@ -6,14 +6,6 @@ from PyQt5.QtGui import *
 import sys
 from stylinginfo import *
 
-import requests
-from PyQt5.QtWidgets import *
-from weather import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-import sys
-from stylinginfo import *
-
 def get_requests_for_driver(username, location):
     # Placeholder: Replace with actual request retrieval logic
     return [
@@ -29,11 +21,13 @@ sidebar = QWidget()
 sidebar.setStyleSheet("background-color: #2c3e50;")
 sidebar.setFixedWidth(200)
 sidebar_layout = QVBoxLayout(sidebar)
+
 welcomeLabel = QLabel("AUBus")
 welcomeLabel.setFont(QFont('Arial', 24, QFont.Bold))
 welcomeLabel.setAlignment(Qt.AlignCenter)
 welcomeLabel.setStyleSheet("color: white; margin: 16px 0 24px 0;")
 sidebar_layout.addWidget(welcomeLabel)
+
 btn1 = QPushButton("Profile")
 btn2 = QPushButton("Settings")
 logout_btn_driver = QPushButton("Log out")
@@ -72,19 +66,23 @@ def create_weather_day_widget(date, temp, condition):
     """)
     day_layout = QVBoxLayout(day_widget)
     day_layout.setSpacing(1)
+
     date_label = QLabel(date)
     date_label.setFont(QFont('Arial', 8, QFont.Bold))
     date_label.setStyleSheet("color: #3498db;")
     date_label.setAlignment(Qt.AlignCenter)
+
     temp_label = QLabel(temp)
     temp_label.setFont(QFont('Arial', 12, QFont.Bold))
     temp_label.setStyleSheet("color: #ecf0f1;")
     temp_label.setAlignment(Qt.AlignCenter)
+
     condition_label = QLabel(condition)
     condition_label.setFont(QFont('Arial', 8))
     condition_label.setStyleSheet("color: #bdc3c7;")
     condition_label.setAlignment(Qt.AlignCenter)
     condition_label.setWordWrap(True)
+
     day_layout.addWidget(date_label)
     day_layout.addWidget(temp_label)
     day_layout.addWidget(condition_label)
@@ -98,12 +96,12 @@ def fetch_and_display_weather(location="Beirut"):
         response.raise_for_status()
         data = response.json()
         forecast_days = data['forecast']['forecastday']
-        # Clear existing weather widgets
+
         for widget in weather_day_widgets:
             weather_bar_layout.removeWidget(widget)
             widget.deleteLater()
         weather_day_widgets.clear()
-        # Add new weather widgets
+
         for day_data in forecast_days:
             date = day_data['date']
             temp = f"{day_data['day']['avgtemp_c']}°C"
@@ -121,7 +119,7 @@ def fetch_and_display_weather(location="Beirut"):
 main_content_layout.addWidget(weather_bar)
 QTimer.singleShot(100, lambda: fetch_and_display_weather("Beirut"))
 
-# --- Requests Bar (replaces request button) ---
+# --- Requests Bar ---
 requests_bar = QFrame()
 requests_bar.setStyleSheet("""
     QFrame {
@@ -131,12 +129,14 @@ requests_bar.setStyleSheet("""
     }
 """)
 requests_bar_layout = QHBoxLayout(requests_bar)
+
 for req in get_requests_for_driver('driver_username', 'driver_location'):
     req_text = f"<b>Passenger:</b> {req['passenger']}<br><b>Pickup:</b> {req['pickup']}<br><b>Time:</b> {req['time']}"
     req_label = QLabel(req_text)
     req_label.setStyleSheet(request_style)
     req_label.setTextFormat(Qt.RichText)
     requests_bar_layout.addWidget(req_label)
+
 requests_bar_layout.addStretch()
 main_content_layout.addWidget(requests_bar)
 
@@ -165,6 +165,7 @@ chatbox_layout.addWidget(chatbox_scroll)
 chatbox_input = QLineEdit()
 chatbox_input.setPlaceholderText("Type your message and press Enter...")
 chatbox_layout.addWidget(chatbox_input)
+
 def send_chat_message():
     msg = chatbox_input.text().strip()
     if msg:
@@ -174,6 +175,7 @@ def send_chat_message():
         label.setMaximumWidth(225)
         chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
         chatbox_input.clear()
+
 def rec_chat_message(message):
     label = QLabel(message)
     label.setWordWrap(True)
@@ -181,9 +183,11 @@ def rec_chat_message(message):
     label.setAlignment(Qt.AlignRight)
     label.setMaximumWidth(175)
     chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
+
 rec_chat_message("Hello")    
 chatbox_scroll.verticalScrollBar().setValue(chatbox_scroll.verticalScrollBar().maximum())
 chatbox_input.returnPressed.connect(send_chat_message)
+
 chatbox_row = QHBoxLayout()
 chatbox_row.addStretch()
 chatbox_row.addWidget(chatbox_placeholder)
