@@ -6,7 +6,9 @@
 # air superiority blue -> #6D98BA
 #tan -> #D3B99F
 #old rose -> #C17767
-
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 user_pass_input_style = """
             QLineEdit {
                 background-color: lightblue;
@@ -102,3 +104,20 @@ request_style = """
 
 textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white; margin-left: 25px;"
 recBubble_style = "color: #222; background: #BDD5EA; border-radius: 8px; padding: 4px 8px; color: white;"
+
+def build_button_style(preferences=None):
+    if preferences is None:
+        preferences = {}
+    return f"""
+        QPushButton {{
+            background-color: {preferences.get('button_color', '#2c3e50')};
+            color: {preferences.get('text_color', 'white')};
+            border: none;
+            padding: 5px;
+            text-align: left;
+            font-size: {preferences.get('font_size', 14)}px;
+        }}
+        QPushButton:hover {{
+            background-color: {preferences.get('button_hover_color', '#34495e')};
+        }}
+    """

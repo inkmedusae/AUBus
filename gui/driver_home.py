@@ -62,6 +62,8 @@ def create_driver_home(preferences=None, username=None, area=None):
             "font_size": 14
         }
     
+    button_style = build_button_style(preferences)
+
     if area is None:
         area = "Beirut"
     
@@ -85,25 +87,10 @@ def create_driver_home(preferences=None, username=None, area=None):
     btn2 = QPushButton("Settings")
     logout_btn_driver = QPushButton("Log out")
     
-    # Apply user-specific button styling
-    button_style = f"""
-        QPushButton {{
-            background-color: {preferences.get('button_color', '#2c3e50')};
-            color: {preferences.get('text_color', 'white')};
-            border: none;
-            padding: 15px;
-            text-align: left;
-            margin-top: 10px;
-            margin-bottom: 10px;
-            font-size: {preferences.get('font_size', 14)}px;
-        }}
-        QPushButton:hover {{
-            background-color: {preferences.get('button_hover_color', '#34495e')};
-        }}
-    """
+    
     
     for btn in [btn1, btn2, logout_btn_driver]:
-        btn.setStyleSheet(button_style)
+        btn.setStyleSheet(homeSide_btn_style)
         btn.setCursor(QCursor(Qt.PointingHandCursor))
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
@@ -213,40 +200,62 @@ def create_driver_home(preferences=None, username=None, area=None):
     
     # --- Requests Section ---
     requests_container = QFrame()
+    requests_container.setFixedHeight(75)
+    container_bg = preferences.get('button_color', '#2c3e50')
     requests_container.setStyleSheet(f"""
         QFrame {{
-            background-color: {preferences.get('button_color', '#2c3e50')};
+            background-color: {container_bg};
             border-radius: 8px;
-            padding: 10px;
         }}
     """)
-    requests_container_layout = QVBoxLayout(requests_container)
-    
-    # Header with refresh button
-    requests_header = QHBoxLayout()
-    requests_title = QLabel("Pending Ride Requests")
-    requests_title.setFont(QFont('Arial', 14, QFont.Bold))
-    requests_title.setStyleSheet(f"color: {preferences.get('text_color', 'white')};")
-    requests_header.addWidget(requests_title)
-    requests_header.addStretch()
+    requests_container_layout = QHBoxLayout(requests_container)
+    requests_container_layout.setContentsMargins(6, 4, 6, 4)
+    requests_container_layout.setSpacing(6)
     
     refresh_btn = QPushButton("🔄 Refresh")
-    refresh_btn.setStyleSheet(button_style)
+    refresh_btn_style = f"""
+        QPushButton {{
+            background-color: {preferences.get('button_hover_color', '#34495e')};
+            color: {preferences.get('text_color', 'white')};
+            border: none;
+            padding: 5px;
+            font-size: 12px;
+            border-radius: 6px;
+        }}
+        QPushButton:hover {{
+            background-color: {preferences.get('button_color', '#2c3e50')};
+        }}
+    """
+    refresh_btn.setStyleSheet(refresh_btn_style)
     refresh_btn.setCursor(QCursor(Qt.PointingHandCursor))
-    requests_header.addWidget(refresh_btn)
-    requests_container_layout.addLayout(requests_header)
+    refresh_btn.setFixedWidth(90)
+    requests_container_layout.addWidget(refresh_btn)
     
     # Scrollable area for requests
     requests_scroll = QScrollArea()
+    requests_scroll.setStyleSheet(f"""
+        QScrollArea {{
+            background-color: {container_bg};
+            border-radius: 8px;
+            padding: 4px;
+        }}
+        QScrollArea > QWidget > QWidget {{
+            background-color: {container_bg};
+        }}
+    """)
     requests_scroll.setWidgetResizable(True)
     requests_scroll.setFrameShape(QFrame.NoFrame)
-    requests_scroll.setMinimumHeight(150)
-    requests_scroll.setMaximumHeight(200)
+    requests_scroll.setMaximumHeight(100)
+    requests_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+    requests_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
     requests_widget = QWidget()
-    requests_layout = QVBoxLayout(requests_widget)
-    requests_layout.setSpacing(10)
+    requests_widget.setStyleSheet(f"background-color: {container_bg};")
+    requests_layout = QHBoxLayout(requests_widget)
+    requests_layout.setSpacing(8)
+    requests_layout.setContentsMargins(0, 0, 0, 0)
+    requests_layout.setAlignment(Qt.AlignLeft)
     requests_scroll.setWidget(requests_widget)
-    requests_container_layout.addWidget(requests_scroll)
+    requests_container_layout.addWidget(requests_scroll, 1)
     
     def update_requests_display():
         """Fetches and displays current pending ride requests"""
@@ -264,7 +273,7 @@ def create_driver_home(preferences=None, username=None, area=None):
         
         if not requests:
             no_requests_label = QLabel("No pending ride requests in your area.")
-            no_requests_label.setStyleSheet(f"color: {preferences.get('text_color', 'white')}; padding: 10px;")
+            no_requests_label.setStyleSheet(f"color: {preferences.get('text_color', 'white')};")
             no_requests_label.setAlignment(Qt.AlignCenter)
             requests_layout.addWidget(no_requests_label)
         else:
@@ -274,10 +283,12 @@ def create_driver_home(preferences=None, username=None, area=None):
                     QFrame {{
                         background-color: {preferences.get('button_hover_color', '#34495e')};
                         border-radius: 6px;
-                        padding: 8px;
+                        padding: 3px;
                     }}
                 """)
                 req_frame_layout = QHBoxLayout(req_frame)
+                req_frame_layout.setAlignment(Qt.AlignVCenter)
+
                 
                 req_info = QLabel(
                     f"<b>Passenger:</b> {req['passenger']}<br>"
