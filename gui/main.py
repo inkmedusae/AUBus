@@ -15,6 +15,7 @@ from PyQt5.QtGui import *
 import sys
 import os
 import threading
+import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stylinginfo import *
 app = QApplication(sys.argv)
@@ -65,7 +66,10 @@ def reset_profile_form():
     user_type['value'] = None
     traveling_schedule['value'] = None
     location['value'] = None
-    schedule_input.clear()
+    # Reset all time pickers to default (8:00 AM)
+    from PyQt5.QtCore import QTime
+    for time_input in schedule_inputs.values():
+        time_input.setTime(QTime(8, 0))
     location_input.clear()
     location_details.clear()
     profile_stack.setCurrentIndex(0)
@@ -251,70 +255,103 @@ def save_profile():
         "area": location['value'],
         "role": user_type['value']
     }
-    
+    # Add weekly schedule for drivers
+    if user_type['value'] == 'driver' and traveling_schedule['value']:
+        profile_data['weekly_schedule'] = json.dumps(traveling_schedule['value'])
+
     # Create the user record with complete profile information
     result = register_user(profile_data)
-    
+
     if result["status"] == "success":
         success_msg = QMessageBox()
         success_msg.setIcon(QMessageBox.Information)
         success_msg.setText("Account created successfully!")
         success_msg.setWindowTitle("Success")
         success_msg.exec_()
-        
-        # Store current user information
-        global current_user
-        current_user["username"] = temp_signup_credentials.get("username")
-        current_user["role"] = user_type['value']
-        current_user["area"] = location['value']
-        # Get default preferences for new user
-        current_user["preferences"] = get_user_preferences(current_user["username"])
-        
-        # Apply user preferences to window
-        if current_user["preferences"]:
-            window.setStyleSheet(f"background-color: {current_user['preferences'].get('background_color', '#FFEAEC')};")
-        
-        # Reset forms and go to appropriate home page based on user type
-        reset_profile_form()
-        username_input_signup.clear()
-        password_input_signup.clear()
-        
-        if user_type['value'] == 'driver':
-            # Remove any existing driver_home widgets to ensure isolation
-            widgets_to_remove = []
-            for i in range(stack.count()):
-                widget = stack.itemAt(i).widget()
-                if hasattr(widget, 'logout_btn_driver'):
-                    widgets_to_remove.append(widget)
-            for widget in widgets_to_remove:
-                stack.removeWidget(widget)
-                widget.deleteLater()  # Clean up to free memory
-            
-            # Create a completely fresh driver_home widget for this user
-            from driver_home import create_driver_home
-            new_driver_home = create_driver_home(current_user["preferences"], current_user["username"], current_user["area"])
-            # Connect logout button
-            new_driver_home.logout_btn_driver.clicked.connect(go_login)
-            stack.addWidget(new_driver_home)
-            stack.setCurrentWidget(new_driver_home)
+
+        # Immediately log the user in to get the correct role from the database
+        login_data = {
+            "username": temp_signup_credentials.get("username"),
+            "password": temp_signup_credentials.get("password")
+        }
+        login_result = login_user(login_data)
+        if login_result["status"] == "success":
+            global current_user
+            current_user["username"] = login_result.get("username")
+            current_user["role"] = login_result.get("role")
+            current_user["area"] = login_result.get("area")
+            current_user["preferences"] = login_result.get("preferences", {})
+
+            # Apply user preferences to window
+            if current_user["preferences"]:
+                window.setStyleSheet(f"background-color: {current_user['preferences'].get('background_color', '#FFEAEC')};")
+
+            # Go to appropriate home page based on role from database
+            if current_user["role"] == 'driver':
+                try:
+                    widgets_to_remove = []
+                    for i in range(stack.count()):
+                        widget = stack.itemAt(i).widget()
+                        if hasattr(widget, 'logout_btn_driver'):
+                            widgets_to_remove.append(widget)
+                    for widget in widgets_to_remove:
+                        stack.removeWidget(widget)
+                        widget.deleteLater()
+                    from driver_home import create_driver_home
+                    new_driver_home = create_driver_home(current_user["preferences"], current_user["username"], current_user["area"])
+                    if hasattr(new_driver_home, 'logout_btn_driver'):
+                        new_driver_home.logout_btn_driver.clicked.connect(go_login)
+                        stack.addWidget(new_driver_home)
+                        stack.setCurrentWidget(new_driver_home)
+                    else:
+                        raise Exception("Driver home widget creation failed.")
+                except Exception as e:
+                    error_msg = QMessageBox()
+                    error_msg.setIcon(QMessageBox.Critical)
+                    error_msg.setText(f"Error loading driver home page: {e}")
+                    error_msg.setWindowTitle("Driver Home Error")
+                    error_msg.exec_()
+            elif current_user["role"] == 'passenger':
+                try:
+                    widgets_to_remove = []
+                    for i in range(stack.count()):
+                        widget = stack.itemAt(i).widget()
+                        if hasattr(widget, 'logout_btn') and not hasattr(widget, 'logout_btn_driver'):
+                            widgets_to_remove.append(widget)
+                    for widget in widgets_to_remove:
+                        stack.removeWidget(widget)
+                        widget.deleteLater()
+                    from home import create_home
+                    new_home = create_home(current_user["preferences"], current_user["username"], current_user["area"])
+                    if hasattr(new_home, 'logout_btn'):
+                        new_home.logout_btn.clicked.connect(go_login)
+                        stack.addWidget(new_home)
+                        stack.setCurrentWidget(new_home)
+                    else:
+                        raise Exception("Passenger home widget creation failed.")
+                except Exception as e:
+                    error_msg = QMessageBox()
+                    error_msg.setIcon(QMessageBox.Critical)
+                    error_msg.setText(f"Error loading passenger home page: {e}")
+                    error_msg.setWindowTitle("Passenger Home Error")
+                    error_msg.exec_()
+            else:
+                error_msg = QMessageBox()
+                error_msg.setIcon(QMessageBox.Critical)
+                error_msg.setText("Unknown user type. Cannot load home page.")
+                error_msg.setWindowTitle("Home Page Error")
+                error_msg.exec_()
+                error_msg = QMessageBox()
+                error_msg.setIcon(QMessageBox.Critical)
+                error_msg.setText(f"Error loading passenger home page: {e}")
+                error_msg.setWindowTitle("Passenger Home Error")
+                error_msg.exec_()
         else:
-            # Remove any existing home widgets to ensure isolation
-            widgets_to_remove = []
-            for i in range(stack.count()):
-                widget = stack.itemAt(i).widget()
-                if hasattr(widget, 'logout_btn') and not hasattr(widget, 'logout_btn_driver'):
-                    widgets_to_remove.append(widget)
-            for widget in widgets_to_remove:
-                stack.removeWidget(widget)
-                widget.deleteLater()  # Clean up to free memory
-            
-            # Create a completely fresh home widget for this user
-            from home import create_home
-            new_home = create_home(current_user["preferences"], current_user["username"], current_user["area"])
-            # Connect logout button
-            new_home.logout_btn.clicked.connect(go_login)
-            stack.addWidget(new_home)
-            stack.setCurrentWidget(new_home)
+            error_msg = QMessageBox()
+            error_msg.setIcon(QMessageBox.Critical)
+            error_msg.setText("Unknown user type. Cannot load home page.")
+            error_msg.setWindowTitle("Home Page Error")
+            error_msg.exec_()
     else:
         error_msg = QMessageBox()
         error_msg.setIcon(QMessageBox.Warning)
@@ -325,6 +362,6 @@ def save_profile():
 
 btn_confirm.clicked.connect(save_profile)
 # if we want to make the window size constant (no resize) uncomment this
-window.setFixedSize(900, 550)
+window.setFixedSize(900, 575)
 window.show()
 sys.exit(app.exec_())

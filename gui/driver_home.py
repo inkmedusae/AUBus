@@ -1,6 +1,6 @@
 import requests
 from PyQt5.QtWidgets import *
-from weather import *
+
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
@@ -200,7 +200,7 @@ def create_driver_home(preferences=None, username=None, area=None):
     
     # --- Requests Section ---
     requests_container = QFrame()
-    requests_container.setFixedHeight(75)
+    requests_container.setFixedHeight(100)
     container_bg = preferences.get('button_color', '#2c3e50')
     requests_container.setStyleSheet(f"""
         QFrame {{

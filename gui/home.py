@@ -1,6 +1,5 @@
 import requests
 from PyQt5.QtWidgets import *
-from weather import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys

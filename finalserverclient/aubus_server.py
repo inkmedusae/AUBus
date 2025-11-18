@@ -21,7 +21,7 @@ users TABLE:
 def init_db():
     """
     Creates the SQLite database and a table for users.
-    The table stores: id, name, email, username, password, area, role (driver/passenger)
+    The table stores: id, name, email, username, password, area, role (driver/passenger), weekly_schedule (JSON for drivers)
     """
     conn = sqlite3.connect('aubus.db')  # Connects to the database file (creates if not exist)
     c = conn.cursor()                    # Cursor object to execute SQL commands
@@ -33,9 +33,11 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             area TEXT NOT NULL,
-            role TEXT NOT NULL
+            role TEXT NOT NULL,
+            weekly_schedule TEXT 
         )
     ''')
+    # SARMAD weekly schedule needs to be a dictionnary of 7 elements
     conn.commit()  # Save changes
     conn.close()   # Close the connection
 
@@ -87,6 +89,7 @@ rides TABLE:
 | `driver_username`    | TEXT    | The username of the driver who accepted the ride. Empty until a driver accepts.                                              |
 
 """
+# SARMAD change time to be the time of the request, could potentially store it as int of seconds
 def init_ride_db():
     """
     Adds a table for ride requests in the database.
@@ -147,16 +150,18 @@ def register_user(data):
     """
     Adds a new user to the database.
     `data` is a dictionary containing: name, email, username, password, area, role
+    For drivers, may also contain: weekly_schedule (JSON string with day -> time mappings)
     Returns a success or error message
     """
     try:
         conn = sqlite3.connect('aubus.db')
         c = conn.cursor()
+        weekly_schedule = data.get('weekly_schedule', None)
         c.execute('''
-            INSERT INTO users (name, email, username, password, area, role)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO users (name, email, username, password, area, role, weekly_schedule)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (data['name'], data['email'], data['username'],
-              data['password'], data['area'], data['role']))
+              data['password'], data['area'], data['role'], weekly_schedule))
         conn.commit()
         conn.close()
         return {"status": "success", "message": "User registered successfully"}
@@ -289,7 +294,16 @@ def create_ride_request(data):
     except Exception as e:
         return {"status": "error", "message": f"Failed to create ride request: {e}"}
 
-
+#  WISSAM GO BACK HERE ---------------- 
+# SARMAD DO THIS
+# NEED get_available_drivers TO HAVE AS PARAMETERS  (area, time) 
+# TO FILTER FOR ALL DRIVERS WHOSE DEPARTURE TIME IS WITHIN
+# 10 MINUTES OF (time)
+# profilePage asks for every day at what time the driver is leaving
+# rides TABLE NEED TO BE MODIFIED -> TIME IS A DICTIONNARY OF 7 TIMES INSTEAD OF A STRING
+# NEED TO ADD DEPARTUE TIME COLUMN IN users DB TO FETCH THE TIME OF A DRIVER GIVEN A DAY
+# make getTime()
+# --------------------------------------------------------------------
 def get_available_drivers(area):
     """
     Returns a list of drivers in the specified area.
@@ -304,6 +318,9 @@ def get_available_drivers(area):
     drivers = c.fetchall()
     conn.close()
     return drivers  # List of tuples: [(username1, area1), (username2, area2), ...]
+# --------------------------------------------------------------------
+# --------------------------------------------------------------------
+
 
 def get_driver_area(username):
     """

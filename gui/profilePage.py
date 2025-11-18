@@ -50,21 +50,37 @@ user_type_widget.setLayout(ut_layout)
 
 schedule_widget = QWidget()
 schedule_layout = QVBoxLayout()
-sch_label = QLabel("What is your traveling schedule?")
+sch_label = QLabel("What time do you leave each day?")
 sch_label.setFont(QFont('Arial', 16, QFont.Bold))
 sch_label.setAlignment(Qt.AlignCenter)
 schedule_layout.addWidget(sch_label)
 schedule_layout.addSpacing(20)
-sch_info = QLabel("Enter your travel days and times")
+sch_info = QLabel("Enter your departure time for each day of the week")
 sch_info.setAlignment(Qt.AlignCenter)
 schedule_layout.addWidget(sch_info)
 schedule_layout.addSpacing(15)
-schedule_input = QTextEdit()
-schedule_input.setPlaceholderText(
-    "Example:\nMonday-Friday: 8:00 AM - 5:00 PM\nSaturday: 10:00 AM - 2:00 PM"
-)
-schedule_input.setMinimumHeight(150)
-schedule_layout.addWidget(schedule_input)
+
+# Create time pickers for each day of the week
+days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+schedule_inputs = {}
+schedule_container = QWidget()
+schedule_form = QGridLayout()
+
+for i, day in enumerate(days_of_week):
+    day_label = QLabel(day)
+    day_label.setFont(QFont('Arial', 12))
+    time_input = QTimeEdit()
+    time_input.setDisplayFormat('HH:mm')
+    time_input.setTime(QTime(8, 0))  # Default to 8:00 AM
+    time_input.setMinimumHeight(35)
+    schedule_inputs[day] = time_input
+    schedule_form.addWidget(day_label, i, 0)
+    schedule_form.addWidget(time_input, i, 1)
+
+schedule_form.setColumnStretch(0, 1)
+schedule_form.setColumnStretch(1, 2)
+schedule_container.setLayout(schedule_form)
+schedule_layout.addWidget(schedule_container)
 schedule_layout.addStretch()
 schedule_widget.setLayout(schedule_layout)
 
@@ -134,7 +150,10 @@ def update_summary():
     summary = f"<b>Profile Summary</b><br><br>"
     summary += f"<b>User Type:</b> {user_type['value'].capitalize()}<br>" if user_type['value'] else ""
     if user_type['value'] == "driver":
-        summary += f"<b>Traveling Schedule:</b><br>{traveling_schedule['value']}<br><br>"
+        summary += f"<b>Departure Schedule:</b><br>"
+        for day, time_input in schedule_inputs.items():
+            summary += f"{day}: {time_input.time().toString('HH:mm')}<br>"
+        summary += "<br>"
     summary += f"<b>Location:</b> {location['value']}"
     if location_details.text():
         summary += f"<br><b>Details:</b> {location_details.text()}"
@@ -148,7 +167,8 @@ def go_next():
         else:
             profile_stack.setCurrentIndex(2)
     elif current_index == 1:  # Schedule -> Location
-        traveling_schedule['value'] = schedule_input.toPlainText()
+        # Capture schedule from time pickers
+        traveling_schedule['value'] = {day: time_input.time().toString('HH:mm') for day, time_input in schedule_inputs.items()}
         profile_stack.setCurrentIndex(2)
     elif current_index == 2:  # Location -> Summary
         location['value'] = location_input.text()
@@ -186,13 +206,12 @@ btn_driver.clicked.connect(select_user_type_driver)
 btn_passenger.clicked.connect(select_user_type_passenger)
 btn_back.clicked.connect(go_previous)
 
-def on_schedule_enter():
-    # Only progress if not empty
-    if schedule_input.toPlainText().strip():
-        go_next()
-schedule_input.keyPressEvent = lambda event: (
-    go_next() if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (event.modifiers() & (Qt.ShiftModifier | Qt.ControlModifier)) else QTextEdit.keyPressEvent(schedule_input, event)
-)
+# Add a button to proceed from schedule page since time pickers don't have return key
+schedule_next_btn = QPushButton("Next")
+schedule_next_btn.setMinimumHeight(50)
+schedule_next_btn.setFont(QFont('Arial', 12, QFont.Bold))
+schedule_layout.addWidget(schedule_next_btn)
+schedule_next_btn.clicked.connect(go_next)
 
 def on_location_enter():
     if location_input.text().strip():
