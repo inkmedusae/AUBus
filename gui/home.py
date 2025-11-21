@@ -4,38 +4,95 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import sys
 import os
+import socket
+import threading
+import json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from stylinginfo import *
 from finalserverclient.aubus_client import client_create_ride
 
 key = "7a77199e48174a098bf174356251411"
 
-def create_home(preferences=None, username=None, area=None):
+# Signal for thread-safe chat message display in passenger home
+class PassengerChatSignals(QObject):
+    message_received = pyqtSignal(str)  # Signal to display received message
+
+passenger_chat_signals = PassengerChatSignals()
+
+def start_passenger_chat_client(home_widget, driver_ip, driver_port):
     """
-    Creates a personalized home widget based on user preferences.
-    preferences: dictionary with GUI customization settings
+    Connects passenger to driver for P2P chat.
+    Runs in a separate thread to avoid blocking the UI.
+    """
+    def connect_to_driver():
+        try:
+            # Validate inputs
+            if not driver_ip or not driver_port:
+                print(f"[PASSENGER CHAT] Invalid driver info: IP={driver_ip}, Port={driver_port}")
+                return
+            
+            print(f"[PASSENGER CHAT] Attempting to connect to driver at {driver_ip}:{driver_port}")
+            
+            # Connect to driver's chat server with timeout
+            driver_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            driver_socket.settimeout(5)  # 5 second timeout
+            driver_socket.connect((driver_ip, int(driver_port)))
+            print(f"[PASSENGER CHAT] Connected to driver at {driver_ip}:{driver_port}")
+            
+            # Store connection in widget
+            home_widget.driver_socket = driver_socket
+            home_widget.chat_active = True
+            
+            # Enable chatbox for sending
+            if hasattr(home_widget, 'chatbox_input'):
+                home_widget.chatbox_input.setEnabled(True)
+            
+            # Listen for messages from driver
+            print(f"[PASSENGER CHAT] Starting message listener thread")
+            while home_widget.chat_active:
+                try:
+                    msg = driver_socket.recv(1024).decode('utf-8')
+                    if not msg:
+                        print(f"[PASSENGER CHAT] Driver closed connection (empty message)")
+                        break
+                    
+                    print(f"[PASSENGER CHAT] Received message: {msg}")
+                    # Emit signal to display message safely on main thread
+                    passenger_chat_signals.message_received.emit(f"Driver: {msg}")
+                except socket.timeout:
+                    # Timeout is okay, just keep listening
+                    continue
+                except Exception as e:
+                    print(f"[PASSENGER CHAT ERROR] Exception during receive: {e}")
+                    break
+            
+            try:
+                driver_socket.close()
+            except:
+                pass
+            home_widget.chat_active = False
+        except socket.timeout:
+            print(f"[PASSENGER CHAT] Connection timeout: driver not responding at {driver_ip}:{driver_port}")
+        except socket.error as e:
+            print(f"[PASSENGER CHAT] Socket error: {e}")
+        except Exception as e:
+            print(f"[PASSENGER CHAT] Error: {e}")
+    
+    # Start connection in background thread
+    connection_thread = threading.Thread(target=connect_to_driver, daemon=True)
+    connection_thread.start()
+
+def create_home(username=None, area=None):
+    """
     username: current user's username
     area: user's area for weather display
     """
-    if preferences is None:
-        preferences = {
-            "sidebar_color": "#2c3e50",
-            "background_color": "#FFEAEC",
-            "button_color": "#2c3e50",
-            "button_hover_color": "#34495e",
-            "text_color": "white",
-            "theme_name": "default",
-            "font_size": 14
-        }
-    
-    if area is None:
-        area = "Beirut"
     
     home_widget = QWidget()
     
     # --- Sidebar ---
     sidebar = QWidget()
-    sidebar.setStyleSheet(f"background-color: {preferences.get('sidebar_color', '#2c3e50')};")
+    sidebar.setStyleSheet("background-color: #2c3e50;")
     sidebar.setFixedWidth(200)
     sidebar_layout = QVBoxLayout(sidebar)
     
@@ -43,7 +100,7 @@ def create_home(preferences=None, username=None, area=None):
     welcomeLabel = QLabel(welcome_text)
     welcomeLabel.setFont(QFont('Arial', 24, QFont.Bold))
     welcomeLabel.setAlignment(Qt.AlignCenter)
-    welcomeLabel.setStyleSheet(f"color: {preferences.get('text_color', 'white')}; margin: 16px 0 24px 0;")
+    welcomeLabel.setStyleSheet("color: white; margin: 16px 0 24px 0;")
     sidebar_layout.addWidget(welcomeLabel)
     
     btn1 = QPushButton("Profile")
@@ -51,24 +108,24 @@ def create_home(preferences=None, username=None, area=None):
     logout_btn = QPushButton("Log out")
     
     # Apply user-specific button styling
-    button_style = f"""
-        QPushButton {{
-            background-color: {preferences.get('button_color', '#2c3e50')};
-            color: {preferences.get('text_color', 'white')};
+    button_style = """
+        QPushButton {
+            background-color: #2c3e50;
+            color: white;
             border: none;
             padding: 15px;
             text-align: left;
             margin-top: 10px;
             margin-bottom: 10px;
-            font-size: {preferences.get('font_size', 14)}px;
-        }}
-        QPushButton:hover {{
-            background-color: {preferences.get('button_hover_color', '#34495e')};
-        }}
+            font-size: 14px;
+        }
+        QPushButton:hover {
+            background-color: #34495e);
+        }
     """
     
     for btn in [btn1, btn2, logout_btn]:
-        btn.setStyleSheet(button_style)
+        btn.setStyleSheet(homeSide_btn_style)
         btn.setCursor(QCursor(Qt.PointingHandCursor))
         sidebar_layout.addWidget(btn)
     sidebar_layout.addStretch()
@@ -79,12 +136,12 @@ def create_home(preferences=None, username=None, area=None):
     
     # --- Weather Bar ---
     weather_bar = QFrame()
-    weather_bar.setStyleSheet(f"""
-        QFrame {{
-            background-color: {preferences.get('button_hover_color', '#34495e')};
+    weather_bar.setStyleSheet("""
+        QFrame {
+            background-color: #34495e;
             border-radius: 8px;
             padding: 5px;
-        }}
+        }
     """)
     weather_bar_layout = QHBoxLayout(weather_bar)
     weather_bar_layout.setSpacing(5)
@@ -93,12 +150,12 @@ def create_home(preferences=None, username=None, area=None):
     
     def create_weather_day_widget(date, temp, condition):
         day_widget = QFrame()
-        day_widget.setStyleSheet(f"""
-            QFrame {{
-                background-color: {preferences.get('button_color', '#2c3e50')};
+        day_widget.setStyleSheet("""
+            QFrame {
+                background-color: #2c3e50;
                 border-radius: 6px;
                 padding: 2px;
-            }}
+            }
         """)
         day_layout = QVBoxLayout(day_widget)
         day_layout.setSpacing(1)
@@ -110,7 +167,7 @@ def create_home(preferences=None, username=None, area=None):
         
         temp_label = QLabel(temp)
         temp_label.setFont(QFont('Arial', 12, QFont.Bold))
-        temp_label.setStyleSheet(f"color: {preferences.get('text_color', '#ecf0f1')};")
+        temp_label.setStyleSheet("color: #ecf0f1;")
         temp_label.setAlignment(Qt.AlignCenter)
         
         condition_label = QLabel(condition)
@@ -187,7 +244,7 @@ def create_home(preferences=None, username=None, area=None):
     
     request_button = QPushButton("Request a ride")
     request_button.setCursor(QCursor(Qt.PointingHandCursor))
-    request_button.setStyleSheet(button_style)
+    request_button.setStyleSheet(request_style)
     main_content_layout.addWidget(request_button)
     
     # Function to handle ride request
@@ -270,7 +327,43 @@ def create_home(preferences=None, username=None, area=None):
                     msg.setText(f"Failed to create ride request:\n{error_message}")
                 msg.setWindowTitle("Error")
             msg.exec_()
-        
+# ----------------------------------------------
+# ----------------------------------------------
+# LATEST PATCH TO CHECK
+
+            # If ride creation was successful, start polling for acceptance
+            # if response.get("status") == "success":
+            #     # Poll for acceptance every 3 seconds
+            #     poll_timer = QTimer()
+            #     poll_attempts = [0]  # Track attempts to avoid spam
+
+            #     def check_for_acceptance():
+            #         poll_attempts[0] += 1
+            #         history_resp = client_get_ride_history(username, "passenger")
+            #         if history_resp.get("status") == "success":
+            #             rides = history_resp.get("rides", [])
+            #             # Find most recent accepted ride with driver contact info
+            #             for r in rides:
+            #                 if r.get('status') == 'accepted':
+            #                     driver_ip = r.get('driver_ip')
+            #                     driver_port = r.get('driver_port')
+            #                     if driver_ip and driver_port:
+            #                         print(f"[PASSENGER] Ride accepted! Driver IP: {driver_ip}, Port: {driver_port}")
+            #                         # Connect to driver for chat
+            #                         start_passenger_chat_client(home_widget, driver_ip, driver_port)
+            #                         poll_timer.stop()
+            #                         return
+            #             # Log every 10 polling attempts
+            #             if poll_attempts[0] % 10 == 0:
+            #                 print(f"[PASSENGER] Still waiting for driver acceptance... (attempt {poll_attempts[0]})")
+            #         else:
+            #             print(f"[PASSENGER] Error checking ride history: {history_resp.get('message')}")
+                
+            #     poll_timer.timeout.connect(check_for_acceptance)
+            #     poll_timer.start(3000)  # Poll every 3 seconds
+# ---------------------------------------------- 
+# ----------------------------------------------
+    
         submit_btn.clicked.connect(submit_request)
         cancel_btn.clicked.connect(dialog.close)
         time_input.returnPressed.connect(submit_request)
@@ -284,12 +377,12 @@ def create_home(preferences=None, username=None, area=None):
     
     chatbox_placeholder = QFrame()
     chatbox_placeholder.setFixedSize(275, 325)
-    chatbox_placeholder.setStyleSheet(f"""
-        QFrame {{
-            background: {preferences.get('background_color', '#FFEAEC')};
+    chatbox_placeholder.setStyleSheet("""
+        QFrame {
+            background: #FFEAEC;
             border: 1px solid #bbb;
             border-radius: 12px;
-        }}
+        }
     """)
     chatbox_layout = QVBoxLayout(chatbox_placeholder)
     chatbox_layout.setContentsMargins(10, 10, 10, 10)
@@ -306,27 +399,51 @@ def create_home(preferences=None, username=None, area=None):
     
     chatbox_input = QLineEdit()
     chatbox_input.setPlaceholderText("Type your message and press Enter...")
+    chatbox_input.setEnabled(False)  # Disabled until ride accepted
     chatbox_layout.addWidget(chatbox_input)
     
     def send_chat_message():
         msg = chatbox_input.text().strip()
-        if msg:
-            label = QLabel(msg)
-            label.setWordWrap(True)
-            bubble_style = f"color: #222; background: {preferences.get('button_color', '#2c3e50')}; border-radius: 8px; padding: 4px 8px; color: {preferences.get('text_color', 'white')}; margin-left: 25px;"
-            label.setStyleSheet(bubble_style)
-            label.setMaximumWidth(225)
-            chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
-            chatbox_input.clear()
+        # ----------------------------------------------
+        # ----------------------------------------------
+        if msg and hasattr(home_widget, 'driver_socket') and home_widget.driver_socket:
+            try:
+                print(f"[PASSENGER SEND] Sending message to driver: {msg}")
+                # Send message to driver
+                home_widget.driver_socket.send(msg.encode('utf-8'))
+                print(f"[PASSENGER SEND] Message sent successfully")
+                # Display sent message
+                label = QLabel(msg)
+                label.setWordWrap(True)
+                bubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white; margin-left: 25px;"
+                label.setStyleSheet(bubble_style)
+                label.setMaximumWidth(225)
+                chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
+                chatbox_input.clear()
+                chatbox_scroll.verticalScrollBar().setValue(chatbox_scroll.verticalScrollBar().maximum())
+            except Exception as e:
+                print(f"[CHAT ERROR] Failed to send message: {e}")
+        else:
+            print(f"[PASSENGER SEND] Not connected to driver or empty message")
     
-    def rec_chat_message(message):
+    def display_received_message(message):
         label = QLabel(message)
         label.setWordWrap(True)
-        label.setStyleSheet(recBubble_style)
+        label.setStyleSheet("color: #222; background: #ecf0f1; border-radius: 8px; padding: 4px 8px; margin-right: 25px;")
         label.setAlignment(Qt.AlignRight)
-        label.setMaximumWidth(175)
+        label.setMaximumWidth(225)
         chatbox_messages_layout.insertWidget(chatbox_messages_layout.count()-1, label)
+        chatbox_scroll.verticalScrollBar().setValue(chatbox_scroll.verticalScrollBar().maximum())
     
+    # Store references for P2P chat
+    home_widget.driver_socket = None
+    home_widget.chat_active = False
+    home_widget.chatbox_input = chatbox_input
+    home_widget.display_received_message = display_received_message
+    
+    # Connect signal to display function (thread-safe)
+    passenger_chat_signals.message_received.connect(display_received_message)
+    # ----------------------------------------------
     # Start with empty chatbox - no shared messages between users
     # Each user gets a fresh chatbox instance
     chatbox_scroll.verticalScrollBar().setValue(chatbox_scroll.verticalScrollBar().maximum())

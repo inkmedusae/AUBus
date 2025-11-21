@@ -6,6 +6,14 @@
 # air superiority blue -> #6D98BA
 #tan -> #D3B99F
 #old rose -> #C17767
+# this page is used to quickyl change attributes to modify the gui 
+# instead of going through the structure itself
+
+# color palette
+# cadet gray -> #9AADBF
+# air superiority blue -> #6D98BA
+#tan -> #D3B99F
+#old rose -> #C17767
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -15,10 +23,9 @@ user_pass_input_style = """
                 border: none;
                 border-radius: 10px;
                 padding: 15px;
+                margin-bottom: 35px;
+                margin-left: 125px;
                 font-size: 14px;
-                margin-bottom: 100px;
-                margin: 50px;
-                margin-left: 200px;
             }
         """
 
@@ -30,7 +37,6 @@ loginbutton_style = """
                 border-radius: 5px;
                 font-size: 16px;
                 font-weight: bold;
-                margin-bottom: 10px;
                 margin-left: 250px;
                 margin-right: 250px;
                 color: #2196F3;
@@ -42,31 +48,16 @@ loginbutton_style = """
         """
 # changing the cursor doesnt work through css
 #ie cursor: pointer; on hover
-signupbutton_style = """
-            QPushButton {
-                background-color: transparent;
-                color: #2196F3;
-                border: 2px solid #2196F3;
-                border-radius: 5px;
-                font-size: 14px;
-            }
-            QPushButton:hover {
-                background-color: #2196F3;
-                color: white;
-            }
-        """
+
 
 noAccount_ask = """
     QPushButton {     
-        margin-bottom: 50px;
         text-align: left;
-        text-decoration: none;
         background: none;
         border: none;
-        margin: 10px;
+        padding: 4px 6px;
     }
     QPushButton:hover {
-        text-decoration: underline;
         color: blue;
     }
 """
@@ -77,10 +68,7 @@ homeSide_btn_style = """
                     background-color: #2c3e50;
                     color: white;
                     border: none;
-                    padding: 15px;
-                    text-align: left;
-                    margin-top: 10px;
-                    margin-bottom: 10px;
+                    padding: 12px 15px;
                 }
                 QPushButton:hover {
                     background-color: #34495e;
@@ -92,32 +80,26 @@ request_style = """
                     background-color: #2c3e50;
                     color: white;
                     border: none;
-                    padding: 15px;
-                    text-align: left;
-                    margin-top: 5px;
-                    margin-bottom: 5px;
+                    border-radius: 5px;
+                    padding: 10px 12px;
                 }
     QPushButton:hover {
                     background-color: #34495e;
                 }
 """
 
-textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white; margin-left: 25px;"
+textBubble_style = "color: #222; background: #2c3e50; border-radius: 8px; padding: 4px 8px; color: white;"
 recBubble_style = "color: #222; background: #BDD5EA; border-radius: 8px; padding: 4px 8px; color: white;"
 
-def build_button_style(preferences=None):
-    if preferences is None:
-        preferences = {}
-    return f"""
-        QPushButton {{
-            background-color: {preferences.get('button_color', '#2c3e50')};
-            color: {preferences.get('text_color', 'white')};
+driver_button_styling = """
+        QPushButton {
+            background-color: #2c3e50;
+            color: white;
             border: none;
-            padding: 5px;
-            text-align: left;
-            font-size: {preferences.get('font_size', 14)}px;
-        }}
-        QPushButton:hover {{
-            background-color: {preferences.get('button_hover_color', '#34495e')};
-        }}
+            padding: 6px 10px;
+            font-size: 14px;
+        }
+        QPushButton:hover {
+            background-color: #34495e;
+        }
     """

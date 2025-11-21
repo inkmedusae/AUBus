@@ -24,13 +24,13 @@ from login import *
 from signup import *
 from home import *
 from driver_home import *
-from finalserverclient.aubus_server import *
+from servertest import *
+#from finalserverclient.aubus_server import *
+
 import sqlite3
 
 init_db()
-init_user_preferences_db()
 init_ride_db()
-init_rating_db()
 
 # Start the server in a background thread
 def start_server_thread():
@@ -50,12 +50,11 @@ current_user = {
     "username": None,
     "role": None,
     "area": None,
-    "preferences": None
 }
 
 def username_exists(username):
     """Check if username exists in database without creating an account"""
-    conn = sqlite3.connect('aubus.db')
+    conn = sqlite3.connect('THE.db')
     c = conn.cursor()
     c.execute('SELECT username FROM users WHERE username=?', (username,))
     result = c.fetchone()
@@ -89,7 +88,6 @@ def go_login():
     current_user["username"] = None
     current_user["role"] = None
     current_user["area"] = None
-    current_user["preferences"] = None
     
     # Remove all user-specific widgets (home/driver_home) to ensure isolation
     widgets_to_remove = []
@@ -157,11 +155,9 @@ def login():
         current_user["username"] = result.get("username")
         current_user["role"] = result.get("role")
         current_user["area"] = result.get("area")
-        current_user["preferences"] = result.get("preferences", {})
         
-        # Apply user preferences to window
-        if current_user["preferences"]:
-            window.setStyleSheet(f"background-color: {current_user['preferences'].get('background_color', '#FFEAEC')};")
+
+        window.setStyleSheet("background-color: #FFEAEC;")
         
         # Check if user is a driver or passenger
         if result.get("role") == "driver":
@@ -178,7 +174,7 @@ def login():
             
             # Create a completely fresh driver_home widget for this user
             from driver_home import create_driver_home
-            new_driver_home = create_driver_home(current_user["preferences"], current_user["username"], current_user["area"])
+            new_driver_home = create_driver_home(current_user["username"], current_user["area"])
             # Connect logout button
             new_driver_home.logout_btn_driver.clicked.connect(go_login)
             stack.addWidget(new_driver_home)
@@ -197,7 +193,7 @@ def login():
             
             # Create a completely fresh home widget for this user
             from home import create_home
-            new_home = create_home(current_user["preferences"], current_user["username"], current_user["area"])
+            new_home = create_home(current_user["username"], current_user["area"])
             # Connect logout button
             new_home.logout_btn.clicked.connect(go_login)
             stack.addWidget(new_home)
@@ -226,8 +222,6 @@ window.setGeometry(100, 100, 500, 600)
 
 window.setStyleSheet("background-color: #FFEAEC;")
 
-
-
 def save_profile():
     # Validate that profile is complete
     if not user_type['value'] or not location['value']:
@@ -248,8 +242,6 @@ def save_profile():
     
     # Prepare data for account creation using stored credentials
     profile_data = {
-        "name": "",  # You might want to add a name field to the signup
-        "email": "",  # You might want to add an email field to the signup
         "username": temp_signup_credentials.get("username"),
         "password": temp_signup_credentials.get("password"),
         "area": location['value'],
@@ -280,11 +272,6 @@ def save_profile():
             current_user["username"] = login_result.get("username")
             current_user["role"] = login_result.get("role")
             current_user["area"] = login_result.get("area")
-            current_user["preferences"] = login_result.get("preferences", {})
-
-            # Apply user preferences to window
-            if current_user["preferences"]:
-                window.setStyleSheet(f"background-color: {current_user['preferences'].get('background_color', '#FFEAEC')};")
 
             # Go to appropriate home page based on role from database
             if current_user["role"] == 'driver':
@@ -298,7 +285,7 @@ def save_profile():
                         stack.removeWidget(widget)
                         widget.deleteLater()
                     from driver_home import create_driver_home
-                    new_driver_home = create_driver_home(current_user["preferences"], current_user["username"], current_user["area"])
+                    new_driver_home = create_driver_home(current_user["username"], current_user["area"])
                     if hasattr(new_driver_home, 'logout_btn_driver'):
                         new_driver_home.logout_btn_driver.clicked.connect(go_login)
                         stack.addWidget(new_driver_home)
@@ -322,7 +309,7 @@ def save_profile():
                         stack.removeWidget(widget)
                         widget.deleteLater()
                     from home import create_home
-                    new_home = create_home(current_user["preferences"], current_user["username"], current_user["area"])
+                    new_home = create_home(current_user["username"], current_user["area"])
                     if hasattr(new_home, 'logout_btn'):
                         new_home.logout_btn.clicked.connect(go_login)
                         stack.addWidget(new_home)

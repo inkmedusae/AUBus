@@ -2,10 +2,8 @@ import sqlite3
 
 # Keep track of connected drivers: username -> client socket
 connected_drivers = {}
-
 # Keep track of connected passengers: username -> client socket
 connected_passengers = {}
-
 """
 users TABLE:
 ┌─────┬─────────────┬──────────────────┬──────────────┬──────────┬──────────┬────────────┐
@@ -16,8 +14,6 @@ users TABLE:
 │  3  │ John Doe    │ john@aub.edu     │ john_ride    │ pass789  │ Downtown │ passenger  │
 └─────┴─────────────┴──────────────────┴──────────────┴──────────┴──────────┴────────────┘
 """
-
-
 def init_db():
     """
     Creates the SQLite database and a table for users.
@@ -65,8 +61,6 @@ def init_user_preferences_db():
     conn.commit()
     conn.close()
 
-
-
 """
 rides TABLE:
 ┌─────┬─────────────────────┬──────────┬──────────┬───────────┬─────────────────┐
@@ -76,7 +70,6 @@ rides TABLE:
 │  2  │ sara123             │ Hamra    │ 02:15 PM │ accepted  │ john_driver     │
 │  3  │ mike_ride           │ Downtown │ 05:45 PM │ completed │ jane_driver     │
 └─────┴─────────────────────┴──────────┴──────────┴───────────┴─────────────────┘
-
 
 
 | Column Name          | Type    | Description                                                                                                                  |
@@ -90,6 +83,7 @@ rides TABLE:
 
 """
 # SARMAD change time to be the time of the request, could potentially store it as int of seconds
+# TO CHECK AAAAAAAAAAAAAAAAAAAAAAA
 def init_ride_db():
     """
     Adds a table for ride requests in the database.
@@ -104,9 +98,21 @@ def init_ride_db():
             area TEXT NOT NULL,
             time TEXT NOT NULL,
             status TEXT DEFAULT 'pending',    -- pending, accepted, completed
-            driver_username TEXT
+            driver_username TEXT,
+            driver_ip TEXT,
+            driver_port INTEGER
         )
     ''')
+    # Migrate existing rides table to include driver_ip and driver_port if missing
+    try:
+        c.execute('PRAGMA table_info(rides)')
+        cols = [r[1] for r in c.fetchall()]
+        if 'driver_ip' not in cols:
+            c.execute('ALTER TABLE rides ADD COLUMN driver_ip TEXT')
+        if 'driver_port' not in cols:
+            c.execute('ALTER TABLE rides ADD COLUMN driver_port INTEGER')
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -274,7 +280,6 @@ def save_user_preferences(username, preferences):
     conn.close()
 
 
-
 def create_ride_request(data):
     """
     Adds a new ride request to the rides table.
@@ -338,7 +343,7 @@ def get_driver_area(username):
     conn.close()
     if result:
         return result[0]  # Return the area
-    return None          # Driver not found
+    return "Driver not found!"          # Driver not found
 
 def notify_drivers(area, ride_info):
     """
@@ -360,7 +365,7 @@ def notify_drivers(area, ride_info):
         except Exception as e:
             print(f"[ERROR] Could not notify {username}: {e}")
 
-def accept_ride_request(ride_id, driver_username):
+def accept_ride_request(ride_id, driver_username, driver_ip=None, driver_port=None):
     """
     Updates a ride request as accepted by a driver.
     ride_id: ID of the ride to accept
@@ -371,12 +376,19 @@ def accept_ride_request(ride_id, driver_username):
         conn = sqlite3.connect('aubus.db')
         c = conn.cursor()
         
-        # Only update if ride is still pending
-        c.execute('''
-            UPDATE rides
-            SET status='accepted', driver_username=?
-            WHERE id=? AND status='pending'
-        ''', (driver_username, ride_id))
+        # Only update if ride is still pending; also store driver's contact info
+        if driver_ip is not None and driver_port is not None:
+            c.execute('''
+                UPDATE rides
+                SET status='accepted', driver_username=?, driver_ip=?, driver_port=?
+                WHERE id=? AND status='pending'
+            ''', (driver_username, driver_ip, driver_port, ride_id))
+        else:
+            c.execute('''
+                UPDATE rides
+                SET status='accepted', driver_username=?
+                WHERE id=? AND status='pending'
+            ''', (driver_username, ride_id))
         
         conn.commit()
         success = c.rowcount > 0  # rowcount > 0 means ride was updated
@@ -455,12 +467,12 @@ def get_ride_history(username, role):
     c = conn.cursor()
     if role == "passenger":
         c.execute('''
-            SELECT id, passenger_username, area, time, status, driver_username
+            SELECT id, passenger_username, area, time, status, driver_username, driver_ip, driver_port
             FROM rides WHERE passenger_username=?
         ''', (username,))
     elif role == "driver":
         c.execute('''
-            SELECT id, passenger_username, area, time, status, driver_username
+            SELECT id, passenger_username, area, time, status, driver_username, driver_ip, driver_port
             FROM rides WHERE driver_username=?
         ''', (username,))
     else:
@@ -478,7 +490,9 @@ def get_ride_history(username, role):
             "area": ride[2],
             "time": ride[3],
             "status": ride[4],
-            "driver_username": ride[5]
+            "driver_username": ride[5],
+            "driver_ip": ride[6] if len(ride) > 6 else None,
+            "driver_port": ride[7] if len(ride) > 7 else None
         })
     
     return {"status": "success", "rides": ride_list}
@@ -546,8 +560,10 @@ def handle_client(client_socket, addr):
             elif action == "accept_ride":
                 ride_id = data.get("ride_id")
                 driver_username = data.get("username")  # The driver sending the request
+                driver_ip = data.get("driver_ip")
+                driver_port = data.get("driver_port")
 
-                if accept_ride_request(ride_id, driver_username):
+                if accept_ride_request(ride_id, driver_username, driver_ip, driver_port):
                     # Find passenger username and info
                     driver_socket = connected_drivers.get(driver_username) 
                     conn_db = sqlite3.connect('aubus.db')
@@ -563,12 +579,15 @@ def handle_client(client_socket, addr):
                         passenger_socket = connected_passengers.get(passenger_username)
                         if passenger_socket:
                             try:
+                                # Determine driver contact info: prefer provided values, else derive from socket
+                                contact_ip = driver_ip if driver_ip else (driver_socket.getpeername()[0] if driver_socket else None)
+                                contact_port = int(driver_port) if driver_port else 6000
                                 info = {
                                     "action": "ride_accepted",
                                     "ride_id": ride_id,
                                     "driver_username": driver_username,
-                                    "driver_ip": driver_socket.getpeername()[0],  # driver IP
-                                    "driver_port": 6000  # fixed P2P port for driver
+                                    "driver_ip": contact_ip,
+                                    "driver_port": contact_port
                                 }
                                 passenger_socket.send(json.dumps(info).encode('utf-8'))
                                 print(f"[INFO] Notified passenger {passenger_username} with driver P2P info.")

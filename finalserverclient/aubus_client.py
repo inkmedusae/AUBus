@@ -11,6 +11,17 @@ response = send_request_to_server('localhost', 5555, {
     "password": "pass123"
 })
 """
+def get_local_ip():
+    """Get the local/private IP address of this machine"""
+    try:
+        # Create a socket connection to determine local IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return local_ip
+    except Exception as e:
+        return f"Error getting local IP: {e}"
 
 def send_request_to_server(server_ip, server_port, request_data):
     """
@@ -72,19 +83,19 @@ def listen_for_notifications(client_socket):
 SERVER_IP = "127.0.0.1"  # Server IP (localhost for testing)
 SERVER_PORT = 5555       # Server port
 
-def client_register(name, email, username, password, area, role):
+def client_register(username, password, area, role, rating, rating_number):
     """
     Sends a registration request to the server.
     Returns server response as a dictionary.
     """
     request = {
         "action": "register",
-        "name": name,
-        "email": email,
         "username": username,
         "password": password,
         "area": area,
-        "role": role
+        "role": role,
+        "rating": rating,
+        "rating_number": rating_number
     }
     return send_request_to_server(SERVER_IP, SERVER_PORT, request)
 
@@ -100,8 +111,6 @@ def client_login(username, password):
     }
     return send_request_to_server(SERVER_IP, SERVER_PORT, request)
 
-
-
 def client_create_ride(passenger_username, area, time):
     """
     Sends a ride request to the server.
@@ -110,6 +119,8 @@ def client_create_ride(passenger_username, area, time):
     request = {
         "action": "create_ride",
         "passenger_username": passenger_username,
+        "passenger_ip": get_local_ip(),
+        "passenger_port": 6000,
         "area": area,
         "time": time
     }
@@ -126,7 +137,6 @@ def client_get_pending_rides(driver_area):
     }
     return send_request_to_server(SERVER_IP, SERVER_PORT, request)
 
-
 def client_accept_ride(ride_id, driver_username):
     """
     Sends a request to the server to accept a ride.
@@ -135,10 +145,11 @@ def client_accept_ride(ride_id, driver_username):
     request = {
         "action": "accept_ride",
         "ride_id": ride_id,
-        "username": driver_username
+        "username": driver_username,
+        "driver_ip": get_local_ip(),
+        "driver_port": 6000
     }
     return send_request_to_server(SERVER_IP, SERVER_PORT, request)
-
 
 def connect_to_peer(peer_ip, peer_port):
     """
@@ -242,13 +253,6 @@ def client_complete_ride(ride_id, driver_username):
     }
     return send_request_to_server(SERVER_IP, SERVER_PORT, request)
 
-def client_get_ride_history(username, role):
-    request = {
-        "action": "get_ride_history",
-        "username": username,
-        "role": role
-    }
-    return send_request_to_server(SERVER_IP, SERVER_PORT, request)
 
 def main():
     while True:
