@@ -377,38 +377,39 @@ def run_all_tests():
     print("Testing ride request notification system")
     print("="*70)
     
-    # Setup
-    setup_test_db()
-    
-    # Run tests
-    results = []
-    results.append(("time_to_seconds function", test_time_to_seconds()))
-    results.append(("Matching time window", test_get_available_drivers_matching()))
-    results.append(("Outside time window", test_get_available_drivers_no_match()))
-    results.append(("Area filtering", test_area_filtering()))
-    results.append(("Day-of-week filtering", test_day_filtering()))
-    results.append(("Early morning edge case", test_edge_case_early_morning()))
-    
-    # Summary
-    print("\n" + "="*70)
-    print("TEST SUMMARY")
-    print("="*70)
-    
-    passed = sum(1 for _, result in results if result)
-    failed = sum(1 for _, result in results if not result)
-    
-    for test_name, result in results:
-        status = "✓ PASS" if result else "✗ FAIL"
-        print(f"{status}: {test_name}")
-    
-    print(f"\nTotal: {passed}/{len(results)} tests passed")
-    
-    # Cleanup
-    if os.path.exists('TEST.db'):
-        os.remove('TEST.db')
-        print("\n[CLEANUP] Test database removed")
-    
-    return failed == 0
+    try:
+        # Setup
+        setup_test_db()
+        
+        # Run tests
+        results = []
+        results.append(("time_to_seconds function", test_time_to_seconds()))
+        results.append(("Matching time window", test_get_available_drivers_matching()))
+        results.append(("Outside time window", test_get_available_drivers_no_match()))
+        results.append(("Area filtering", test_area_filtering()))
+        results.append(("Day-of-week filtering", test_day_filtering()))
+        results.append(("Early morning edge case", test_edge_case_early_morning()))
+        
+        # Summary
+        print("\n" + "="*70)
+        print("TEST SUMMARY")
+        print("="*70)
+        
+        passed = sum(1 for _, result in results if result)
+        failed = sum(1 for _, result in results if not result)
+        
+        for test_name, result in results:
+            status = "✓ PASS" if result else "✗ FAIL"
+            print(f"{status}: {test_name}")
+        
+        print(f"\nTotal: {passed}/{len(results)} tests passed")
+        
+        return failed == 0
+    finally:
+        # Cleanup - always runs even if tests fail
+        if os.path.exists('TEST.db'):
+            os.remove('TEST.db')
+            print("\n[CLEANUP] Test database removed")
 
 if __name__ == "__main__":
     success = run_all_tests()

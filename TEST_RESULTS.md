@@ -133,20 +133,23 @@ Only drivers from the filtered list receive a notification via their socket conn
 
 ## Known Behavior
 
-### Current Database State
-As of the last test run:
-- **Drivers**: 1 driver named "driver" in Hamra, scheduled at 09:00 daily
-- **Passengers**: 1 passenger named "hi" in Hamra
-- **Pending Rides**: Ride #1 at 22:00 (no matching drivers, hence pending)
+### Understanding Pending Rides
+A ride request will remain pending when no drivers match all of the following criteria:
+- Same geographic area as the passenger
+- Scheduled for the current day of the week
+- Schedule within ±10 minutes of the requested ride time
 
-### Why Ride #1 is Still Pending
-The existing ride request is for 22:00 (10 PM), but the only driver is scheduled at 09:00 (9 AM). The time difference is 13 hours, far exceeding the 10-minute matching window, so no drivers are notified.
+If a ride shows as "pending" for an extended period, it typically means:
+- No drivers are available in that area
+- No drivers have schedules matching the requested time window
+- All matching drivers are offline or already assigned to other rides
 
 ### How to Create Matching Rides
-To test with successful matches, create rides that match driver schedules:
-- Area: "Hamra"
-- Time: Between 08:50 and 09:10 (any time within ±10 minutes of 09:00)
-- Day: Any day of the week (driver is scheduled for all days)
+To test the notification system with successful matches, create ride requests that align with existing driver schedules:
+1. Check driver schedules using `demo_time_filtering.py` to see available times
+2. Create a ride request in the same area as the driver
+3. Set the ride time within ±10 minutes of the driver's scheduled time
+4. Ensure the request is made on a day the driver is scheduled to work
 
 ## Code Changes Verified
 
